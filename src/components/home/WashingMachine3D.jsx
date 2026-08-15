@@ -47,8 +47,8 @@ function Machine() {
   const drum = useRef();
 
   useFrame((_, delta) => {
-    group.current.rotation.y += delta * 0.15;
-    drum.current.rotation.z += delta * 0.4;
+    group.current.rotation.y += delta * 0.4;
+    drum.current.rotation.z += delta * 1.1;
   });
 
   return (
@@ -83,9 +83,9 @@ function Machine() {
         </mesh>
         {/* Tumbling garments seen through the glass */}
         <group position={[0, 0, 0.15]}>
-          <Tumble radius={0.32} speed={1.1} color={GOLD_LIGHT} offset={0} />
-          <Tumble radius={0.3} speed={0.9} color={CERULEAN} offset={2} />
-          <Tumble radius={0.28} speed={1.3} color="#ffffff" offset={4} />
+          <Tumble radius={0.32} speed={2.4} color={GOLD_LIGHT} offset={0} />
+          <Tumble radius={0.3} speed={2.0} color={CERULEAN} offset={2} />
+          <Tumble radius={0.28} speed={2.8} color="#ffffff" offset={4} />
         </group>
       </group>
 
