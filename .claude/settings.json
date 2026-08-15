@@ -6,7 +6,14 @@
       "Bash(curl -fsSL -o hero.png \"https://media.base44.com/images/public/6a803b0dcd51fca903469d5f/46551ef1e_generated_6a8d0c49.png\")",
       "Bash(npm install *)",
       "Bash(brew services *)",
-      "Bash(mysql --version)"
+      "Bash(mysql --version)",
+      "Bash(git commit -m ' *)",
+      "Bash(node -e ' *)",
+      "Bash(pkill -f \"vite --port 5183\")",
+      "Bash(rm -f /Users/dhirendra/Eglaf_Git_Projects/Git-Eglaf-LLP-org/T2-laundry/preview.html)",
+      "Bash(rm -f /Users/dhirendra/Eglaf_Git_Projects/Git-Eglaf-LLP-org/T2-laundry/src/dev-preview.jsx)",
+      "Bash(rm -f /private/tmp/t2-cart-*.png)",
+      "Bash(rm -f /private/tmp/audit-*.png /private/tmp/verify-*.png /private/tmp/overflow-scan.json /private/tmp/debug-blank.png)"
     ]
   }
 }
