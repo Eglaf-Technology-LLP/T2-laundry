@@ -2,8 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, Clock, Truck } from "lucide-react";
-import { Image } from "@/components/ui/image";
-import HERO_IMG from "@/assets/hero.png";
+import WashingMachine3D from "@/components/home/WashingMachine3D";
 
 const container = {
   hidden: {},
@@ -17,14 +16,18 @@ const item = {
 export default function Hero() {
   return (
     <section className="relative overflow-hidden">
-      <div className="absolute inset-0 -z-10">
-        <Image src={HERO_IMG} alt="" className="h-full w-full object-cover" fittingType="fill" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[hsl(var(--alabaster))] via-[hsl(var(--alabaster))]/85 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--alabaster))] to-transparent" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white via-[hsl(var(--alabaster))] to-white" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[hsl(var(--alabaster))] via-[hsl(var(--alabaster))]/70 to-transparent" />
+      <div className="absolute top-1/4 right-[10%] -z-10 h-72 w-72 rounded-full bg-[hsl(var(--gold))]/10 blur-3xl" />
+      <div className="absolute bottom-0 right-1/4 -z-10 h-72 w-72 rounded-full bg-[hsl(var(--cerulean))]/10 blur-3xl" />
+
+      {/* Desktop: 3D washing machine fills the right half of the hero */}
+      <div className="hidden lg:block absolute inset-y-0 right-0 w-1/2 xl:w-[55%]">
+        <WashingMachine3D />
       </div>
 
       <motion.div
-        className="mx-auto max-w-7xl px-4 sm:px-6 py-24 lg:py-36"
+        className="relative mx-auto max-w-7xl px-4 sm:px-6 py-24 lg:py-36"
         variants={container}
         initial="hidden"
         animate="show"
@@ -67,6 +70,11 @@ export default function Hero() {
             <span className="inline-flex items-center gap-2"><Truck className="h-4 w-4 text-[hsl(var(--gold))]" style={{ color: "hsl(var(--gold))" }} /> Free pickup & delivery</span>
           </motion.div>
         </div>
+
+        {/* Mobile/tablet: 3D washing machine shown in-flow below the text */}
+        <motion.div variants={item} className="lg:hidden relative mt-12 h-72 sm:h-96 rounded-3xl overflow-hidden steam-glass">
+          <WashingMachine3D />
+        </motion.div>
       </motion.div>
     </section>
   );
