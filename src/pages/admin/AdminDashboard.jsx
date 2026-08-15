@@ -119,9 +119,9 @@ export default function AdminDashboard() {
         </div>
         <div className="space-y-2">
           {orders.slice(0, 6).map((o) => (
-            <div key={o.id} className="flex items-center justify-between gap-3 rounded-xl bg-muted/40 px-4 py-3">
+            <div key={o.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 rounded-xl bg-muted/40 px-4 py-3">
               <div className="flex items-center gap-3 min-w-0">
-                <span className="font-mono text-sm font-semibold" style={{ color: "hsl(var(--navy))" }}>{o.order_code}</span>
+                <span className="font-mono text-sm font-semibold shrink-0 whitespace-nowrap" style={{ color: "hsl(var(--navy))" }}>{o.order_code}</span>
                 <span className="text-sm text-foreground/70 truncate">{o.customer_name}</span>
               </div>
               <div className="flex items-center gap-3 shrink-0">

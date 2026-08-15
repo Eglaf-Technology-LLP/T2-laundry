@@ -67,9 +67,9 @@ export default function AdminOrders() {
         <div className="lg:col-span-2 space-y-3">
           {filtered.map((o) => (
             <button key={o.id} onClick={() => setSelected(o)} className={`w-full text-left rounded-2xl bg-white p-4 shadow-sm border transition-all ${selected?.id === o.id ? "border-[hsl(var(--gold))]" : "border-border/60 hover:border-[hsl(var(--gold))]/40"}`}>
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="font-mono text-sm font-semibold" style={{ color: "hsl(var(--navy))" }}>{o.order_code}</span>
+                  <span className="font-mono text-sm font-semibold shrink-0 whitespace-nowrap" style={{ color: "hsl(var(--navy))" }}>{o.order_code}</span>
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate" style={{ color: "hsl(var(--navy))" }}>{o.customer_name}</p>
                     <p className="text-xs text-foreground/50">{o.customer_phone}</p>

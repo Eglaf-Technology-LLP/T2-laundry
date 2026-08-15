@@ -71,11 +71,12 @@ export default function TrackOrder() {
             </div>
           </div>
 
-          {/* Timeline */}
+          {/* Timeline — horizontally scrollable on narrow screens instead of
+              squeezing all 6 stages into view, which clipped labels on mobile. */}
           <div className="mt-8">
-            <div className="flex justify-between gap-1">
+            <div className="flex gap-1 overflow-x-auto scrollbar-hide sm:justify-between -mx-1 px-1">
               {STAGES.map((s, i) => (
-                <div key={s.key} className="flex-1 flex flex-col items-center text-center">
+                <div key={s.key} className="flex flex-col items-center text-center w-16 shrink-0 sm:flex-1 sm:w-auto">
                   <div
                     className={cn("grid h-11 w-11 place-items-center rounded-full border-2 transition-all", i <= currentIndex ? "bg-[hsl(var(--navy))] border-[hsl(var(--navy))] text-white" : "bg-white border-border text-foreground/40")}
                     style={i <= currentIndex ? { background: "hsl(var(--navy))", borderColor: "hsl(var(--navy))" } : {}}

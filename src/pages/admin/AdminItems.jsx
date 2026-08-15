@@ -65,7 +65,41 @@ export default function AdminItems() {
         ))}
       </div>
 
-      <div className="rounded-2xl bg-white shadow-sm border border-border/60 overflow-hidden">
+      {/* Mobile/tablet: card list — a data table with 8 columns has no good way to
+          shrink onto a phone screen without either clipping data or requiring a
+          horizontal-scroll table, neither of which feels like a native app. */}
+      <div className="md:hidden space-y-3">
+        {filtered.map((it) => (
+          <div key={it.id} className="rounded-2xl bg-white p-4 shadow-sm border border-border/60">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium truncate" style={{ color: "hsl(var(--navy))" }}>{it.name}</p>
+                <p className="text-xs text-foreground/50">{it.category}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button onClick={() => togglePopular(it)} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-muted">
+                  <Star className={`h-4 w-4 ${it.popular ? "fill-[hsl(var(--gold))] text-[hsl(var(--gold))]" : "text-foreground/30"}`} style={it.popular ? { color: "hsl(var(--gold))" } : {}} />
+                </button>
+                <button onClick={() => remove(it)} className="grid h-9 w-9 place-items-center rounded-lg text-foreground/40 hover:text-destructive hover:bg-rose-50">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-4 gap-2 rounded-xl bg-muted/40 p-2.5 text-center">
+              {[["Wash", it.wash_price], ["Iron", it.iron_price], ["W&I", it.wash_iron_price], ["Dry Clean", it.dryclean_price]].map(([label, value]) => (
+                <div key={label}>
+                  <p className="text-[9px] font-mono-label text-foreground/40">{label}</p>
+                  <p className="text-sm font-semibold" style={{ color: "hsl(var(--navy))" }}>{num(value)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+        {!filtered.length && <p className="text-sm text-foreground/40 py-10 text-center">No items.</p>}
+      </div>
+
+      {/* Desktop/tablet: full table */}
+      <div className="hidden md:block rounded-2xl bg-white shadow-sm border border-border/60 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
             <tr className="text-left font-mono-label text-[10px] text-foreground/50">
