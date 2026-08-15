@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, Crown, Sparkles } from "lucide-react";
 import { api } from "@/api/client";
+import Reveal from "@/components/home/Reveal";
 
 export default function VIPVault() {
   const [plan, setPlan] = useState(null);
@@ -12,7 +13,7 @@ export default function VIPVault() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 sm:px-6 py-20">
-      <div className="relative overflow-hidden rounded-[2rem] gold-border p-8 sm:p-12 lg:p-16 text-white">
+      <Reveal className="relative overflow-hidden rounded-[2rem] gold-border p-8 sm:p-12 lg:p-16 text-white shadow-2xl shadow-navy/20">
         <div className="absolute inset-0 -z-10" style={{ background: "linear-gradient(135deg, #0E2346 0%, #0F172A 60%, #0E2346 100%)" }} />
         <div className="absolute -top-20 -right-10 h-72 w-72 rounded-full bg-[hsl(var(--gold))]/20 blur-3xl" />
         <div className="absolute -bottom-24 -left-10 h-72 w-72 rounded-full bg-[hsl(var(--cerulean))]/15 blur-3xl" />
@@ -52,7 +53,7 @@ export default function VIPVault() {
             ))}
           </div>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
