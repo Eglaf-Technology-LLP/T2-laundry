@@ -1,17 +1,18 @@
 import React from "react";
-import { Plus, Minus, Check } from "lucide-react";
+import { Plus, Minus, Check, Droplets, Wind, WashingMachine, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SERVICE_OPTIONS = [
-  { key: "wash_price", label: "Wash" },
-  { key: "iron_price", label: "Iron" },
-  { key: "wash_iron_price", label: "Wash & Iron" },
-  { key: "dryclean_price", label: "Dry Clean" },
+  { key: "wash_price", label: "Wash", icon: Droplets },
+  { key: "iron_price", label: "Iron", icon: Wind },
+  { key: "wash_iron_price", label: "Wash & Iron", icon: WashingMachine },
+  { key: "dryclean_price", label: "Dry Clean", icon: Sparkles },
 ];
 
-export default function ItemCard({ item, line, onSelectService, onQty }) {
+export default function ItemCard({ item, lines = [], onSelectService, onQty }) {
   const available = SERVICE_OPTIONS.filter((o) => (item[o.key] || 0) > 0);
-  const active = line?.serviceKey;
+  const lineFor = (key) => lines.find((l) => l.serviceKey === key);
+  const total = lines.reduce((s, l) => s + l.price * l.quantity, 0);
 
   return (
     <div className="group relative rounded-3xl steam-glass p-5 shadow-sm hover:shadow-lg hover:shadow-navy/5 transition-all duration-500 hover:-translate-y-0.5">
@@ -23,42 +24,57 @@ export default function ItemCard({ item, line, onSelectService, onQty }) {
         <span className="font-mono-label text-[10px] text-foreground/40">{item.category}</span>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
+      <p className="mt-3 text-[10px] font-mono-label text-foreground/40">Pick any combination of services</p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
         {available.map((o) => {
-          const isActive = active === o.key;
+          const line = lineFor(o.key);
+          const isActive = !!line;
+
+          if (!isActive) {
+            return (
+              <button
+                key={o.key}
+                onClick={() => onSelectService(item, o.key)}
+                className="flex flex-col items-start gap-1.5 rounded-2xl border border-border/60 bg-white/70 px-3 py-2.5 text-left text-foreground/70 transition-all hover:border-[hsl(var(--gold))]/40 hover:bg-white"
+              >
+                <o.icon className="h-4 w-4 text-foreground/40" />
+                <span className="text-xs font-semibold leading-tight">{o.label}</span>
+                <span className="text-xs font-mono-label text-foreground/50">{item[o.key]} QAR</span>
+              </button>
+            );
+          }
+
           return (
-            <button
+            <div
               key={o.key}
-              onClick={() => onSelectService(item, o.key)}
-              className={cn(
-                "rounded-full px-3 py-1.5 text-xs font-medium transition-all",
-                isActive ? "bg-[hsl(var(--navy))] text-white shadow" : "bg-white/70 text-foreground/70 hover:bg-white"
-              )}
-              style={isActive ? { background: "hsl(var(--navy))" } : {}}
+              className="relative flex flex-col gap-2 rounded-2xl border border-transparent px-3 py-2.5 text-white shadow-md"
+              style={{ background: "hsl(var(--navy))" }}
             >
-              {o.label} · {item[o.key]} QAR
-            </button>
+              <span className="absolute right-2 top-2 grid h-4 w-4 place-items-center rounded-full bg-[hsl(var(--gold))]" style={{ color: "hsl(var(--navy))" }}>
+                <Check className="h-2.5 w-2.5" />
+              </span>
+              <o.icon className="h-4 w-4 text-[hsl(var(--gold-light))]" />
+              <span className="text-xs font-semibold leading-tight pr-4">{o.label}</span>
+
+              <div className="flex items-center gap-1">
+                <button onClick={() => onQty(item, o.key, -1)} className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-white/15 hover:bg-white/25 transition-colors">
+                  <Minus className="h-3 w-3" />
+                </button>
+                <span className="w-5 text-center text-xs font-semibold">{line.quantity}</span>
+                <button onClick={() => onQty(item, o.key, 1)} className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-white/15 hover:bg-white/25 transition-colors">
+                  <Plus className="h-3 w-3" />
+                </button>
+              </div>
+              <span className="text-xs font-mono-label text-white/85">{item[o.key] * line.quantity} QAR</span>
+            </div>
           );
         })}
       </div>
 
-      {line && (
-        <div className="mt-4 flex items-center justify-between rounded-2xl bg-white/70 p-2">
-          <div className="flex items-center gap-1">
-            <button onClick={() => onQty(item, line.serviceKey, -1)} className="grid h-8 w-8 place-items-center rounded-lg bg-white shadow-sm hover:bg-[hsl(var(--navy))] hover:text-white transition-colors">
-              <Minus className="h-4 w-4" />
-            </button>
-            <span className="w-8 text-center text-sm font-semibold">{line.quantity}</span>
-            <button onClick={() => onQty(item, line.serviceKey, 1)} className="grid h-8 w-8 place-items-center rounded-lg bg-white shadow-sm hover:bg-[hsl(var(--navy))] hover:text-white transition-colors">
-              <Plus className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold" style={{ color: "hsl(var(--gold-dark))" }}>{line.price * line.quantity} QAR</span>
-            <span className="grid h-6 w-6 place-items-center rounded-full bg-[hsl(var(--navy))] text-white">
-              <Check className="h-3.5 w-3.5" />
-            </span>
-          </div>
+      {lines.length > 0 && (
+        <div className="mt-4 flex items-center justify-between rounded-2xl bg-white/70 p-3">
+          <span className="text-xs text-foreground/60">{lines.length} service{lines.length > 1 ? "s" : ""} selected</span>
+          <span className="text-sm font-semibold" style={{ color: "hsl(var(--gold-dark))" }}>{total} QAR</span>
         </div>
       )}
     </div>

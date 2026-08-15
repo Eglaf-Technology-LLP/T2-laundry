@@ -98,7 +98,7 @@ export default function Services() {
               <ItemCard
                 key={item.id}
                 item={item}
-                line={lines.find((l) => l.id === item.id)}
+                lines={lines.filter((l) => l.id === item.id)}
                 onSelectService={addLine}
                 onQty={changeQty}
               />
