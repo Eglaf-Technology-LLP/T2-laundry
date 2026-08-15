@@ -1,11 +1,30 @@
 import React, { Suspense, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { RoundedBox, Float, ContactShadows, MeshDistortMaterial } from "@react-three/drei";
+import { RoundedBox, Float, ContactShadows, MeshDistortMaterial, useTexture } from "@react-three/drei";
+import logoUrl from "@/assets/logo.jpg";
 
 const NAVY = "#0E2346";
 const GOLD = "#D4AF37";
 const GOLD_LIGHT = "#E5C578";
 const CERULEAN = "#3B82F6";
+
+function LogoPlate({ position, rotationY, size = 0.85 }) {
+  const texture = useTexture(logoUrl);
+  return (
+    <group position={position} rotation={[0, rotationY, 0]}>
+      {/* Gold bezel */}
+      <mesh>
+        <planeGeometry args={[size + 0.08, size + 0.08]} />
+        <meshStandardMaterial color={GOLD} metalness={0.75} roughness={0.3} />
+      </mesh>
+      {/* Logo */}
+      <mesh position={[0, 0, 0.012]}>
+        <planeGeometry args={[size, size]} />
+        <meshBasicMaterial map={texture} toneMapped={false} />
+      </mesh>
+    </group>
+  );
+}
 
 function Tumble({ radius, speed, color, offset }) {
   const ref = useRef();
@@ -69,6 +88,11 @@ function Machine() {
           <Tumble radius={0.28} speed={1.3} color="#ffffff" offset={4} />
         </group>
       </group>
+
+      {/* Logo plates on every side except the front (door/controls already live there) */}
+      <LogoPlate position={[1.17, 0.1, 0]} rotationY={Math.PI / 2} />
+      <LogoPlate position={[-1.17, 0.1, 0]} rotationY={-Math.PI / 2} />
+      <LogoPlate position={[0, 0.1, -1.07]} rotationY={Math.PI} />
 
       {/* Feet */}
       {[[-0.95, -1.4, 0.85], [0.95, -1.4, 0.85], [-0.95, -1.4, -0.85], [0.95, -1.4, -0.85]].map((p, i) => (
