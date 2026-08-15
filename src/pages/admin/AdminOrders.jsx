@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Search, ChevronRight, CheckCircle2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/client";
 
 const STAGES = ["pending", "picked_up", "in_facility", "quality_check", "out_for_delivery", "delivered"];
 const STAGE_LABELS = {
@@ -23,20 +23,20 @@ export default function AdminOrders() {
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
 
-  const load = () => base44.entities.Order.list("-created_date", 100).then(setOrders);
+  const load = () => api.entities.Order.list("-created_date", 100).then(setOrders);
   useEffect(() => { load(); }, []);
 
   const advance = async (o) => {
     const idx = STAGES.indexOf(o.status);
     if (idx < STAGES.length - 1) {
-      await base44.entities.Order.update(o.id, { status: STAGES[idx + 1] });
+      await api.entities.Order.update(o.id, { status: STAGES[idx + 1] });
       load();
       setSelected((s) => (s && s.id === o.id ? { ...s, status: STAGES[idx + 1] } : s));
     }
   };
 
   const cancel = async (o) => {
-    await base44.entities.Order.update(o.id, { status: "cancelled" });
+    await api.entities.Order.update(o.id, { status: "cancelled" });
     load();
     setSelected((s) => (s && s.id === o.id ? { ...s, status: "cancelled" } : s));
   };

@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
-import { LayoutDashboard, ClipboardList, Package, Users, Crown, Home, Menu, X } from "lucide-react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { LayoutDashboard, ClipboardList, Package, Users, Crown, Home, Menu, X, LogOut } from "lucide-react";
 import Logo from "@/components/site/Logo";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/AuthContext";
 
 const NAV = [
   { label: "Overview", to: "/admin", icon: LayoutDashboard, exact: true },
@@ -14,6 +15,13 @@ const NAV = [
 export default function AdminLayout() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/admin/login", { replace: true });
+  };
 
   const isActive = (to, exact) => exact ? location.pathname === to : location.pathname.startsWith(to);
 
@@ -82,9 +90,14 @@ export default function AdminLayout() {
               <h1 className="text-lg font-bold" style={{ color: "hsl(var(--navy))" }}>{NAV.find((n) => isActive(n.to, n.exact))?.label || "Dashboard"}</h1>
             </div>
           </div>
-          <Link to="/" className="inline-flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-sm font-medium hover:bg-accent">
-            <Home className="h-4 w-4" /> <span className="hidden sm:inline">View Site</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/" className="inline-flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-sm font-medium hover:bg-accent">
+              <Home className="h-4 w-4" /> <span className="hidden sm:inline">View Site</span>
+            </Link>
+            <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-sm font-medium hover:bg-accent">
+              <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">Log out</span>
+            </button>
+          </div>
         </header>
         <main className="flex-1 p-4 sm:p-6">
           <Outlet />

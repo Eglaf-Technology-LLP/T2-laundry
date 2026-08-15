@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Search, Package } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/client";
 import ItemCard from "@/components/services/ItemCard";
 import OrderCart from "@/components/services/OrderCart";
 
@@ -15,8 +15,8 @@ export default function Services() {
 
   useEffect(() => {
     Promise.all([
-      base44.entities.Item.list("display_order", 100),
-      base44.entities.Category.list("display_order", 50),
+      api.entities.Item.list("display_order", 100),
+      api.entities.Category.list("display_order", 50),
     ]).then(([i, c]) => {
       setItems(i);
       setCats([{ name: "All", slug: "all" }, ...c]);

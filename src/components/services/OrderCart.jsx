@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ShoppingCart, X, Trash2, Truck, Store, Calendar, Clock, ArrowRight, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/client";
 
 const SLOTS = ["08:00 – 10:00", "10:00 – 12:00", "12:00 – 14:00", "14:00 – 16:00", "16:00 – 18:00", "18:00 – 20:00"];
 
@@ -28,7 +28,7 @@ export default function OrderCart({ lines, items, onQty, onRemove, onClear }) {
         price: l.price,
       }));
       const code = "T2-" + Math.random().toString(36).slice(2, 8).toUpperCase();
-      const created = await base44.entities.Order.create({
+      const created = await api.entities.Order.create({
         order_code: code,
         customer_name: form.customer_name,
         customer_phone: form.customer_phone,

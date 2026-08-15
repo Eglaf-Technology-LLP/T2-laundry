@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Shirt, Layers, Home as HomeIcon, Footprints, Crown, ArrowRight } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/client";
 
 const ICONS = { Shirt, Layers, Home: HomeIcon, Footprints, Crown };
 
@@ -10,10 +10,10 @@ export default function GarmentCategories() {
   const [counts, setCounts] = useState({});
 
   useEffect(() => {
-    base44.entities.Category.list("display_order", 20)
+    api.entities.Category.list("display_order", 20)
       .then(setCats)
       .catch(() => setCats([]));
-    base44.entities.Item.list().then((items) => {
+    api.entities.Item.list().then((items) => {
       const c = {};
       items.forEach((i) => { c[i.category] = (c[i.category] || 0) + 1; });
       setCounts(c);

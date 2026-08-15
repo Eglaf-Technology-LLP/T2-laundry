@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Plus, Trash2, X, Star, Search } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/client";
 
 export default function AdminItems() {
   const [items, setItems] = useState([]);
@@ -11,7 +11,7 @@ export default function AdminItems() {
   const [form, setForm] = useState({ name: "", category: "", wash_price: 0, iron_price: 0, wash_iron_price: 0, dryclean_price: 0, popular: false });
 
   const load = async () => {
-    const [i, c] = await Promise.all([base44.entities.Item.list("display_order", 200), base44.entities.Category.list("display_order", 50)]);
+    const [i, c] = await Promise.all([api.entities.Item.list("display_order", 200), api.entities.Category.list("display_order", 50)]);
     setItems(i); setCats(c);
     if (c.length && !form.category) setForm((f) => ({ ...f, category: c[0].name }));
   };
@@ -19,19 +19,19 @@ export default function AdminItems() {
 
   const create = async () => {
     if (!form.name || !form.category) return;
-    await base44.entities.Item.create({ ...form, display_order: items.length + 1, active: true, eligible_subscription: true });
+    await api.entities.Item.create({ ...form, display_order: items.length + 1, active: true, eligible_subscription: true });
     setForm({ name: "", category: form.category, wash_price: 0, iron_price: 0, wash_iron_price: 0, dryclean_price: 0, popular: false });
     setShowForm(false);
     load();
   };
 
   const togglePopular = async (it) => {
-    await base44.entities.Item.update(it.id, { popular: !it.popular });
+    await api.entities.Item.update(it.id, { popular: !it.popular });
     load();
   };
 
   const remove = async (it) => {
-    await base44.entities.Item.delete(it.id);
+    await api.entities.Item.delete(it.id);
     load();
   };
 

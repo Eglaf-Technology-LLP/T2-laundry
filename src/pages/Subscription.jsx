@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, Crown, Sparkles, TrendingDown, ShieldCheck, Star } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/client";
 
 export default function Subscription() {
   const [plans, setPlans] = useState([]);
   const [subscribed, setSubscribed] = useState(false);
 
   useEffect(() => {
-    base44.entities.SubscriptionPlan.list().then(setPlans).catch(() => {});
+    api.entities.SubscriptionPlan.list().then(setPlans).catch(() => {});
   }, []);
 
   const vip = plans.find((p) => p.is_vip);
@@ -17,7 +17,7 @@ export default function Subscription() {
   const subscribe = async () => {
     if (!vip) return;
     try {
-      await base44.entities.Member.create({
+      await api.entities.Member.create({
         full_name: "New Member",
         phone: "",
         plan_name: vip.name,

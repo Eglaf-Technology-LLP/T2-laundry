@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Users/dhirendra/Eglaf_Git_Projects/Git-Eglaf-LLP-org/T2-laundry/src/assets)",
+      "Bash(curl -fsSL -o logo.jpg \"https://media.base44.com/images/public/user_6a80334d1b7d0b90de726706/a1a1e4dc7_PHOTO-2026-08-03-15-40-45.jpg\")",
+      "Bash(curl -fsSL -o hero.png \"https://media.base44.com/images/public/6a803b0dcd51fca903469d5f/46551ef1e_generated_6a8d0c49.png\")",
+      "Bash(npm install *)",
+      "Bash(brew services *)",
+      "Bash(mysql --version)"
+    ]
+  }
+}

@@ -4,7 +4,6 @@ import ServiceMatrix from "@/components/home/ServiceMatrix";
 import GarmentCategories from "@/components/home/GarmentCategories";
 import VIPVault from "@/components/home/VIPVault";
 import HowItWorks from "@/components/home/HowItWorks";
-import DownloadSource from "@/components/home/DownloadSource";
 import TrackCta from "@/components/home/TrackCta";
 
 export default function Home() {
@@ -15,7 +14,6 @@ export default function Home() {
       <GarmentCategories />
       <VIPVault />
       <HowItWorks />
-      <DownloadSource />
       <TrackCta />
     </>
   );

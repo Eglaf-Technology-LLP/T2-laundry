@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Search, PackageCheck, Truck, ClipboardList, Sparkles, Home } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/client";
 import { cn } from "@/lib/utils";
 
 const STAGES = [
@@ -22,7 +22,7 @@ export default function TrackOrder() {
     if (!code.trim()) return;
     setLoading(true); setError(""); setOrder(null);
     try {
-      const res = await base44.entities.Order.filter({ order_code: code.trim().toUpperCase() });
+      const res = await api.entities.Order.filter({ order_code: code.trim().toUpperCase() });
       if (res.length) setOrder(res[0]);
       else setError("No order found with that code.");
     } catch (e) {

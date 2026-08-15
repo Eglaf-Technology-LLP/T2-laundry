@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Plus, X, Crown, Trash2, Search } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/client";
 
 const STATUS_STYLE = {
   active: "bg-emerald-100 text-emerald-700",
@@ -15,12 +15,12 @@ export default function AdminMembers() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", plan_name: "T2 VIP", status: "active" });
 
-  const load = () => base44.entities.Member.list().then(setMembers);
+  const load = () => api.entities.Member.list().then(setMembers);
   useEffect(() => { load(); }, []);
 
   const create = async () => {
     if (!form.full_name || !form.phone) return;
-    await base44.entities.Member.create({
+    await api.entities.Member.create({
       ...form,
       start_date: new Date().toISOString().slice(0, 10),
       end_date: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
@@ -31,7 +31,7 @@ export default function AdminMembers() {
     load();
   };
 
-  const remove = async (m) => { await base44.entities.Member.delete(m.id); load(); };
+  const remove = async (m) => { await api.entities.Member.delete(m.id); load(); };
 
   const filtered = members.filter((m) => !query || m.full_name.toLowerCase().includes(query.toLowerCase()) || (m.email || "").toLowerCase().includes(query.toLowerCase()));
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Droplets, Wind, WashingMachine, Sparkles, Footprints, Home, ArrowUpRight } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/client";
 
 const ICONS = { Droplets, Wind, WashingMachine, Sparkles, Footprints, Home };
 
@@ -9,7 +9,7 @@ export default function ServiceMatrix() {
   const [services, setServices] = useState([]);
 
   useEffect(() => {
-    base44.entities.Service.list("display_order", 20)
+    api.entities.Service.list("display_order", 20)
       .then(setServices)
       .catch(() => setServices([]));
   }, []);

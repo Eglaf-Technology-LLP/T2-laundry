@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ClipboardList, Crown, Truck, Banknote, TrendingUp, ArrowRight } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/client";
 
 const STAGES = ["pending", "picked_up", "in_facility", "quality_check", "out_for_delivery", "delivered"];
 const STATUS_STYLE = {
@@ -20,9 +20,9 @@ export default function AdminDashboard() {
   const [items, setItems] = useState([]);
 
   useEffect(() => {
-    base44.entities.Order.list("-created_date", 100).then(setOrders).catch(() => {});
-    base44.entities.Member.list().then(setMembers).catch(() => {});
-    base44.entities.Item.list().then(setItems).catch(() => {});
+    api.entities.Order.list("-created_date", 100).then(setOrders).catch(() => {});
+    api.entities.Member.list().then(setMembers).catch(() => {});
+    api.entities.Item.list().then(setItems).catch(() => {});
   }, []);
 
   const revenue = orders.reduce((s, o) => s + (o.total || 0), 0);

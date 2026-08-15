@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, Crown, Sparkles } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/client";
 
 export default function VIPVault() {
   const [plan, setPlan] = useState(null);
 
   useEffect(() => {
-    base44.entities.SubscriptionPlan.filter({ is_vip: true }).then((r) => setPlan(r[0] || null)).catch(() => {});
+    api.entities.SubscriptionPlan.filter({ is_vip: true }).then((r) => setPlan(r[0] || null)).catch(() => {});
   }, []);
 
   return (

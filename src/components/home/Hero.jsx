@@ -2,8 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles, Clock, Truck } from "lucide-react";
 import { Image } from "@/components/ui/image";
-
-const HERO_IMG = "https://media.base44.com/images/public/6a803b0dcd51fca903469d5f/46551ef1e_generated_6a8d0c49.png";
+import HERO_IMG from "@/assets/hero.png";
 
 export default function Hero() {
   return (
