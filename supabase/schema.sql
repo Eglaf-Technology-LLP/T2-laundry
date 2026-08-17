@@ -1,6 +1,7 @@
 -- =================================================================
 -- T2 Laundry — Supabase (Postgres) schema, RLS policies, RPCs, seed data
 -- Run this in the Supabase SQL editor (or `supabase db push`) on a fresh project.
+-- (For an already-provisioned project, use supabase/migrations/ instead.)
 -- =================================================================
 
 create extension if not exists pgcrypto;
@@ -68,6 +69,7 @@ create table subscription_plans (
   id                 uuid primary key default gen_random_uuid(),
   name               varchar(120) not null,
   slug               varchar(120),
+  tagline            text,
   price              numeric(10,2) not null,
   currency           varchar(8) default 'QAR',
   period             varchar(20) default 'month',
@@ -82,13 +84,25 @@ create table subscription_plans (
   updated_date       timestamptz default now()
 );
 
+-- Links a Supabase Auth user to a role. One row per signup (customer or admin).
+create table profiles (
+  id           uuid primary key references auth.users(id) on delete cascade,
+  role         text not null default 'customer' check (role in ('customer', 'admin')),
+  full_name    text,
+  email        text,
+  created_date timestamptz default now()
+);
+
 create table members (
   id               uuid primary key default gen_random_uuid(),
+  user_id          uuid references auth.users(id),
+  plan_id          uuid references subscription_plans(id),
   full_name        varchar(150) not null,
   email            varchar(180),
   phone            varchar(40) not null,
   plan_name        varchar(120),
   status           member_status default 'active',
+  payment_status   text not null default 'pending' check (payment_status in ('pending', 'paid')),
   start_date       date,
   end_date         date,
   bookings_used    int default 0,
@@ -147,12 +161,49 @@ create trigger trg_orders_updated before update on orders
   for each row execute function set_updated_at();
 
 -- -----------------------------------------------------------------
+-- is_admin() — SECURITY DEFINER so it can read profiles regardless of
+-- the caller's own RLS visibility (avoids recursive-policy issues).
+-- Every "admin-only" policy below uses this — never auth.role() =
+-- 'authenticated', which would just mean "logged in as anyone,"
+-- customers included.
+-- -----------------------------------------------------------------
+create or replace function is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (select 1 from profiles where id = auth.uid() and role = 'admin');
+$$;
+
+-- Auto-create a profile row for every new Supabase Auth signup.
+create or replace function handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into profiles (id, email, full_name, role)
+  values (new.id, new.email, new.raw_user_meta_data->>'full_name', 'customer')
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function handle_new_user();
+
+-- -----------------------------------------------------------------
 -- Row Level Security
 -- -----------------------------------------------------------------
 alter table categories enable row level security;
 alter table services enable row level security;
 alter table items enable row level security;
 alter table subscription_plans enable row level security;
+alter table profiles enable row level security;
 alter table members enable row level security;
 alter table orders enable row level security;
 
@@ -162,19 +213,30 @@ create policy "services_public_read" on services for select using (true);
 create policy "items_public_read" on items for select using (true);
 create policy "subscription_plans_public_read" on subscription_plans for select using (true);
 
--- Admin (the single Supabase Auth user, once logged in): full catalogue management.
+-- Admin (anyone whose profiles.role = 'admin'): full catalogue management.
 create policy "categories_admin_write" on categories for all
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+  using (is_admin()) with check (is_admin());
 create policy "items_admin_write" on items for all
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+  using (is_admin()) with check (is_admin());
+create policy "subscription_plans_admin_write" on subscription_plans for all
+  using (is_admin()) with check (is_admin());
+create policy "services_admin_write" on services for all
+  using (is_admin()) with check (is_admin());
 
--- Members and orders contain customer PII — no public table access at all.
--- Public writes/reads for these go through the SECURITY DEFINER RPCs below instead.
-create policy "members_admin_read" on members for select using (auth.role() = 'authenticated');
-create policy "members_admin_delete" on members for delete using (auth.role() = 'authenticated');
+-- Profiles: everyone can read/update their own row; admins can read everyone's.
+create policy "profiles_own_read" on profiles for select using (id = auth.uid());
+create policy "profiles_own_update" on profiles for update using (id = auth.uid()) with check (id = auth.uid());
+create policy "profiles_admin_read" on profiles for select using (is_admin());
 
-create policy "orders_admin_read" on orders for select using (auth.role() = 'authenticated');
-create policy "orders_admin_update" on orders for update using (auth.role() = 'authenticated');
+-- Members and orders contain customer PII — no blanket public table access.
+-- Public writes/reads for these go through the SECURITY DEFINER RPCs below,
+-- plus each customer can read their own membership row directly.
+create policy "members_admin_read" on members for select using (is_admin());
+create policy "members_admin_delete" on members for delete using (is_admin());
+create policy "members_own_read" on members for select using (user_id = auth.uid());
+
+create policy "orders_admin_read" on orders for select using (is_admin());
+create policy "orders_admin_update" on orders for update using (is_admin()) with check (is_admin());
 
 -- -----------------------------------------------------------------
 -- RPCs: the only way the public storefront can write/read members & orders.
@@ -225,10 +287,16 @@ as $$
 $$;
 grant execute on function track_order to anon, authenticated;
 
+-- Membership signup requires a session (Subscribe Now forces signup/login
+-- first), so this is authenticated-only. user_id comes from the caller's own
+-- session, never a client-supplied value. Admin-created members (walk-ins
+-- added from the admin panel) get user_id = NULL rather than being
+-- incorrectly linked to the admin's own account.
 create or replace function create_member(
   p_full_name text,
   p_email text,
   p_phone text,
+  p_plan_id uuid,
   p_plan_name text,
   p_status member_status,
   p_start_date date,
@@ -244,19 +312,22 @@ set search_path = public
 as $$
 declare
   v_member members;
+  v_user_id uuid;
 begin
+  v_user_id := case when is_admin() then null else auth.uid() end;
+
   insert into members (
-    full_name, email, phone, plan_name, status, start_date, end_date,
-    bookings_used, bookings_allowed, items_used, items_allowed
+    user_id, full_name, email, phone, plan_id, plan_name, status, start_date, end_date,
+    bookings_used, bookings_allowed, items_used, items_allowed, payment_status
   ) values (
-    p_full_name, p_email, p_phone, p_plan_name, coalesce(p_status, 'active'), p_start_date, p_end_date,
-    coalesce(p_bookings_used, 0), coalesce(p_bookings_allowed, 4), coalesce(p_items_used, 0), coalesce(p_items_allowed, 20)
+    v_user_id, p_full_name, p_email, p_phone, p_plan_id, p_plan_name, coalesce(p_status, 'active'), p_start_date, p_end_date,
+    coalesce(p_bookings_used, 0), coalesce(p_bookings_allowed, 4), coalesce(p_items_used, 0), coalesce(p_items_allowed, 20), 'pending'
   )
   returning * into v_member;
   return v_member;
 end;
 $$;
-grant execute on function create_member to anon, authenticated;
+grant execute on function create_member to authenticated;
 
 -- -----------------------------------------------------------------
 -- Seed: Categories
@@ -281,14 +352,21 @@ insert into services (name, slug, description, icon, base_price, turnaround_hour
 ('Home & Carpet','home-care','Deep clean for linens, curtains, carpets and rugs.','Home',30,72,'QAR',true);
 
 -- -----------------------------------------------------------------
--- Seed: Subscription Plans
+-- Seed: Subscription Plans (4 tiers)
 -- -----------------------------------------------------------------
-insert into subscription_plans (name, slug, price, currency, period, pieces_per_booking, bookings_per_month, eligible_items, features, is_vip, popular, active)
-values
-('T2 VIP','t2-vip',109,'QAR','month',20,4,20,
-  jsonb_build_array('Free pickup & delivery','Priority booking','Real-time tracking','Up to 4 service bookings / month','20 eligible items / month','24h priority turnaround'),true,true,true),
-('Pay As You Go','pay-as-you-go',0,'QAR','month',0,0,0,
-  jsonb_build_array('No commitment','Pay per item','Order anytime','Standard turnaround'),false,false,true);
+insert into subscription_plans (name, slug, tagline, price, currency, period, bookings_per_month, eligible_items, features, is_vip, popular, active) values
+('Essential', 'essential', 'Perfect for individuals.', 109, 'QAR', 'month', 4, 20,
+  jsonb_build_array('Up to 4 Service Bookings per Month', 'Up to 20 Eligible Items per Month', 'Free Pickup & Delivery', 'Reward Points', 'Priority Booking', 'Order Tracking', 'Free Pickup'),
+  false, false, true),
+('Couple', 'couple', 'Perfect for couples.', 199, 'QAR', 'month', 8, 40,
+  jsonb_build_array('Up to 8 Service Bookings per Month', 'Up to 40 Eligible Items per Month', 'Free Pickup & Delivery', 'Priority Booking', 'Reward Points', 'Exclusive Member Discounts', 'Includes everything in Essential PLUS', 'Free Pickup'),
+  false, false, true),
+('Family', 'family', 'Perfect for families.', 249, 'QAR', 'month', 12, 60,
+  jsonb_build_array('Up to 12 Service Bookings per Month', 'Up to 60 Eligible Items per Month', 'Free Pickup & Delivery', 'Priority Support', 'Family Benefits', 'Reward Points', 'Includes everything in Couple PLUS', 'Free Pickup', 'Priority Support'),
+  false, false, true),
+('VIP', 'vip', 'Premium Membership.', 499, 'QAR', 'month', 20, 120,
+  jsonb_build_array('Up to 20 Service Bookings per Month', 'Up to 120 Eligible Items per Month', 'Unlimited Pickup & Delivery', 'Express Priority Service', 'Dedicated Customer Support', 'Highest Reward Points', 'Exclusive VIP Benefits', 'Includes everything in Family PLUS', 'Free Pickup', 'Express', 'Priority', 'Priority Support'),
+  true, true, true);
 
 -- -----------------------------------------------------------------
 -- Seed: Items (sample of the catalogue)
@@ -311,15 +389,7 @@ insert into items (name, category, wash_price, iron_price, wash_iron_price, dryc
 ('Leather Jacket','Specialty Care',0,0,0,60,false,true,15,true);
 
 -- -----------------------------------------------------------------
--- Seed: Sample members
--- -----------------------------------------------------------------
-insert into members (full_name, email, phone, plan_name, status, start_date, end_date, bookings_used, bookings_allowed, items_used, items_allowed) values
-('Ahmed Al-Rashid','ahmed@example.com','+974 5555 1000','T2 VIP','active','2026-08-01','2026-08-31',1,4,5,20),
-('Layla Hassan','layla@example.com','+974 5555 1001','T2 VIP','active','2026-07-15','2026-08-14',3,4,16,20),
-('Omar Saif','omar@example.com','+974 5555 1002','Pay As You Go','active','2026-08-10',NULL,0,0,0,0);
-
--- -----------------------------------------------------------------
--- Seed: Sample orders
+-- Seed: Sample orders (no user_id — these predate customer accounts)
 -- -----------------------------------------------------------------
 insert into orders (order_code, customer_name, customer_phone, pickup_type, pickup_slot, items, total, status, payment_status, created_date) values
 ('T2-A1B2C3','Ahmed Al-Rashid','+974 5555 1000','pickup','10:00 - 12:00',
@@ -330,9 +400,12 @@ insert into orders (order_code, customer_name, customer_phone, pickup_type, pick
   jsonb_build_array(jsonb_build_object('name','Sneakers','category','Footwear','service','Footwear Care','quantity',1,'price',35)),35,'delivered','paid','2026-08-10 08:15:00');
 
 -- -----------------------------------------------------------------
--- Admin user: create via Supabase dashboard → Authentication → Users → Add user
--- (email + password). RLS policies above grant full access to any authenticated
--- user, so this one login is the entire admin panel's access control.
+-- Admin user: create via Supabase dashboard → Authentication → Users →
+-- Add user (email + password), then run this once with that email —
+-- profiles.role = 'admin' is the entire admin panel's access control.
 -- -----------------------------------------------------------------
+-- insert into profiles (id, email, role)
+-- select id, email, 'admin' from auth.users where email = 'YOUR-ADMIN-EMAIL@example.com'
+-- on conflict (id) do update set role = 'admin';
 
 -- END OF SQL SCRIPT

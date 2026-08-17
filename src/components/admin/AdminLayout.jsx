@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ClipboardList, Package, Users, Crown, Home, Menu, X, LogOut } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Package, Users, Crown, Home, Menu, X, LogOut, Droplets } from "lucide-react";
 import Logo from "@/components/site/Logo";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
@@ -9,6 +9,8 @@ const NAV = [
   { label: "Overview", to: "/admin", icon: LayoutDashboard, exact: true },
   { label: "Orders", to: "/admin/orders", icon: ClipboardList },
   { label: "Items & Categories", to: "/admin/items", icon: Package },
+  { label: "Services", to: "/admin/services", icon: Droplets },
+  { label: "Plans", to: "/admin/plans", icon: Crown },
   { label: "Members", to: "/admin/members", icon: Users },
 ];
 

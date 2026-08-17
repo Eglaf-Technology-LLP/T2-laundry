@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function ProtectedRoute({ children }) {
-  const { isLoadingAuth, isAuthenticated } = useAuth();
+  const { isLoadingAuth, isAuthenticated, role } = useAuth();
 
   if (isLoadingAuth) {
     return (
@@ -13,7 +13,9 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  if (!isAuthenticated) return <Navigate to="/admin/login" replace />;
+  // Customers can also be authenticated now, so being logged in isn't enough —
+  // only profiles.role === 'admin' may reach the admin panel.
+  if (!isAuthenticated || role !== "admin") return <Navigate to="/admin/login" replace />;
 
   return children;
 }

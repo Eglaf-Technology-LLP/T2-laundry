@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Sparkles } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Menu, X, Sparkles, User, LogOut } from "lucide-react";
 import Logo from "./Logo";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/AuthContext";
 
 const NAV_LINKS = [
   { label: "Services", to: "/services" },
@@ -15,6 +16,8 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -24,6 +27,11 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => { setOpen(false); }, [location.pathname]);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
 
   return (
     <header className={cn("fixed top-0 inset-x-0 z-50 transition-all duration-500", scrolled ? "py-2" : "py-4")}>
@@ -51,6 +59,21 @@ export default function Navbar() {
           </nav>
 
           <div className="flex items-center gap-2">
+            {isAuthenticated ? (
+              <button
+                onClick={handleLogout}
+                className="hidden sm:inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-navy"
+              >
+                <LogOut className="h-4 w-4" /> Log out
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                className="hidden sm:inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-navy"
+              >
+                <User className="h-4 w-4" /> Log in
+              </Link>
+            )}
             <Link
               to="/services"
               className="hidden sm:inline-flex items-center gap-2 rounded-full bg-[hsl(var(--navy))] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-navy/10 transition-transform hover:scale-[1.03] active:scale-95"
@@ -79,6 +102,15 @@ export default function Navbar() {
                 {l.label}
               </Link>
             ))}
+            {isAuthenticated ? (
+              <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium hover:bg-white/60 text-left">
+                <LogOut className="h-4 w-4" /> Log out
+              </button>
+            ) : (
+              <Link to="/login" className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium hover:bg-white/60">
+                <User className="h-4 w-4" /> Log in
+              </Link>
+            )}
             <Link to="/services" className="mt-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[hsl(var(--navy))] px-5 py-3 text-sm font-semibold text-white">
               <Sparkles className="h-4 w-4 text-[hsl(var(--gold-light))]" /> Book a Pickup
             </Link>

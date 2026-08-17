@@ -61,7 +61,7 @@ export default function Hero() {
               to="/subscription"
               className="inline-flex items-center justify-center gap-2 rounded-full gold-border shimmer-gold px-7 py-4 text-sm font-semibold text-white"
             >
-              Join T2 VIP — 109 QAR
+              Membership Plans — from 109 QAR
             </Link>
           </motion.div>
 

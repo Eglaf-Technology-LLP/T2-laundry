@@ -27,7 +27,7 @@ export default function AdminDashboard() {
 
   const revenue = orders.reduce((s, o) => s + (o.total || 0), 0);
   const active = orders.filter((o) => !["delivered", "cancelled"].includes(o.status)).length;
-  const vipCount = members.filter((m) => m.plan_name === "T2 VIP").length;
+  const vipCount = members.filter((m) => m.plan_name === "VIP").length;
 
   // revenue by category heatmap
   const catRevenue = {};

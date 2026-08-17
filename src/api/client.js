@@ -81,6 +81,7 @@ const Member = {
       p_full_name: body.full_name,
       p_email: body.email || null,
       p_phone: body.phone,
+      p_plan_id: body.plan_id || null,
       p_plan_name: body.plan_name,
       p_status: body.status,
       p_start_date: body.start_date,
@@ -110,10 +111,27 @@ export const api = {
       if (error) throw error;
       return data;
     },
+    async signup(email, password, fullName) {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName } },
+      });
+      if (error) throw error;
+      return data;
+    },
     async me() {
       const { data, error } = await supabase.auth.getUser();
       if (error) throw error;
       return data.user;
+    },
+    async getProfile() {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!userData.user) return null;
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', userData.user.id).maybeSingle();
+      if (error) throw error;
+      return data;
     },
     async logout() {
       const { error } = await supabase.auth.signOut();

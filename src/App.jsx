@@ -13,11 +13,15 @@ import Home from '@/pages/Home';
 import Services from '@/pages/Services';
 import Subscription from '@/pages/Subscription';
 import TrackOrder from '@/pages/TrackOrder';
+import Login from '@/pages/Login';
+import Signup from '@/pages/Signup';
 import AdminLogin from '@/pages/admin/AdminLogin';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import AdminOrders from '@/pages/admin/AdminOrders';
 import AdminItems from '@/pages/admin/AdminItems';
 import AdminMembers from '@/pages/admin/AdminMembers';
+import AdminPlans from '@/pages/admin/AdminPlans';
+import AdminServices from '@/pages/admin/AdminServices';
 
 function App() {
 
@@ -33,17 +37,21 @@ function App() {
               <Route path="/services" element={<Services />} />
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/track" element={<TrackOrder />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
             </Route>
 
             {/* Admin login (public) */}
             <Route path="/admin/login" element={<AdminLogin />} />
 
-            {/* Admin command center (JWT-protected) */}
+            {/* Admin command center (role-protected) */}
             <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
               <Route index element={<AdminDashboard />} />
               <Route path="orders" element={<AdminOrders />} />
               <Route path="items" element={<AdminItems />} />
               <Route path="members" element={<AdminMembers />} />
+              <Route path="plans" element={<AdminPlans />} />
+              <Route path="services" element={<AdminServices />} />
             </Route>
 
             <Route path="*" element={<PageNotFound />} />

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Trash2, X, Star, Search } from "lucide-react";
+import { Plus, Trash2, X, Star, Search, Tags, Pencil } from "lucide-react";
 import { api } from "@/api/client";
+
+const EMPTY_CATEGORY = { name: "", slug: "", description: "", icon: "Shirt" };
 
 export default function AdminItems() {
   const [items, setItems] = useState([]);
@@ -9,6 +11,9 @@ export default function AdminItems() {
   const [query, setQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", category: "", wash_price: 0, iron_price: 0, wash_iron_price: 0, dryclean_price: 0, popular: false });
+  const [showCategories, setShowCategories] = useState(false);
+  const [editingCat, setEditingCat] = useState(null); // null = closed, {} = add, {...cat} = edit
+  const [catForm, setCatForm] = useState(EMPTY_CATEGORY);
 
   const load = async () => {
     const [i, c] = await Promise.all([api.entities.Item.list("display_order", 200), api.entities.Category.list("display_order", 50)]);
@@ -35,6 +40,24 @@ export default function AdminItems() {
     load();
   };
 
+  const openAddCategory = () => { setCatForm(EMPTY_CATEGORY); setEditingCat({}); };
+  const openEditCategory = (c) => {
+    setCatForm({ name: c.name || "", slug: c.slug || "", description: c.description || "", icon: c.icon || "Shirt" });
+    setEditingCat(c);
+  };
+  const saveCategory = async () => {
+    if (!catForm.name) return;
+    if (editingCat?.id) await api.entities.Category.update(editingCat.id, catForm);
+    else await api.entities.Category.create({ ...catForm, display_order: cats.length + 1, active: true });
+    setEditingCat(null);
+    load();
+  };
+  const removeCategory = async (c) => {
+    await api.entities.Category.delete(c.id);
+    if (filter === c.name) setFilter("All");
+    load();
+  };
+
   const filtered = items.filter((it) => {
     const cOk = filter === "All" || it.category === filter;
     const qOk = !query || it.name.toLowerCase().includes(query.toLowerCase());
@@ -57,12 +80,17 @@ export default function AdminItems() {
         </button>
       </div>
 
-      <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
-        {["All", ...cats.map((c) => c.name)].map((c) => (
-          <button key={c} onClick={() => setFilter(c)} className={`whitespace-nowrap rounded-full px-3.5 py-2 text-xs font-medium ${filter === c ? "bg-[hsl(var(--navy))] text-white" : "bg-white border border-border text-foreground/60"}`} style={filter === c ? { background: "hsl(var(--navy))" } : {}}>
-            {c}
-          </button>
-        ))}
+      <div className="flex items-center gap-2">
+        <div className="flex flex-1 gap-1.5 overflow-x-auto scrollbar-hide">
+          {["All", ...cats.map((c) => c.name)].map((c) => (
+            <button key={c} onClick={() => setFilter(c)} className={`whitespace-nowrap rounded-full px-3.5 py-2 text-xs font-medium ${filter === c ? "bg-[hsl(var(--navy))] text-white" : "bg-white border border-border text-foreground/60"}`} style={filter === c ? { background: "hsl(var(--navy))" } : {}}>
+              {c}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => setShowCategories(true)} className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-3.5 py-2 text-xs font-medium text-foreground/60 hover:bg-muted">
+          <Tags className="h-3.5 w-3.5" /> Manage
+        </button>
       </div>
 
       {/* Mobile/tablet: card list — a data table with 8 columns has no good way to
@@ -168,6 +196,59 @@ export default function AdminItems() {
             <div className="mt-6 flex gap-2 justify-end">
               <button onClick={() => setShowForm(false)} className="rounded-xl border border-border px-5 py-2.5 text-sm font-medium">Cancel</button>
               <button onClick={create} className="rounded-xl bg-[hsl(var(--navy))] px-5 py-2.5 text-sm font-semibold text-white" style={{ background: "hsl(var(--navy))" }}>Create Item</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage categories modal */}
+      {showCategories && (
+        <div className="fixed inset-0 z-50 grid place-items-center p-4">
+          <div className="absolute inset-0 bg-navy/30 backdrop-blur-sm" onClick={() => setShowCategories(false)} />
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-semibold" style={{ color: "hsl(var(--navy))" }}>Categories</h3>
+              <button onClick={() => setShowCategories(false)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-muted"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {cats.map((c) => (
+                <div key={c.id} className="flex items-center justify-between gap-2 rounded-xl bg-muted/40 px-3 py-2.5">
+                  <span className="text-sm font-medium truncate" style={{ color: "hsl(var(--navy))" }}>{c.name}</span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => openEditCategory(c)} className="grid h-8 w-8 place-items-center rounded-lg hover:bg-white"><Pencil className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => removeCategory(c)} className="grid h-8 w-8 place-items-center rounded-lg text-foreground/40 hover:text-destructive hover:bg-white"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                </div>
+              ))}
+              {!cats.length && <p className="text-sm text-foreground/40 py-4 text-center">No categories yet.</p>}
+            </div>
+            <button onClick={openAddCategory} className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-sm font-medium text-foreground/60 hover:bg-muted">
+              <Plus className="h-4 w-4" /> Add Category
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Add/edit category form */}
+      {editingCat !== null && (
+        <div className="fixed inset-0 z-[60] grid place-items-center p-4">
+          <div className="absolute inset-0 bg-navy/30 backdrop-blur-sm" onClick={() => setEditingCat(null)} />
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-semibold" style={{ color: "hsl(var(--navy))" }}>{editingCat?.id ? "Edit Category" : "Add Category"}</h3>
+              <button onClick={() => setEditingCat(null)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-muted"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Name" className="col-span-2"><input value={catForm.name} onChange={(e) => setCatForm({ ...catForm, name: e.target.value })} className="input" /></Field>
+              <Field label="Slug"><input value={catForm.slug} onChange={(e) => setCatForm({ ...catForm, slug: e.target.value })} className="input" /></Field>
+              <Field label="Icon (lucide name)"><input value={catForm.icon} onChange={(e) => setCatForm({ ...catForm, icon: e.target.value })} className="input" /></Field>
+              <Field label="Description" className="col-span-2"><textarea value={catForm.description} onChange={(e) => setCatForm({ ...catForm, description: e.target.value })} className="input" rows={2} /></Field>
+            </div>
+            <div className="mt-6 flex gap-2 justify-end">
+              <button onClick={() => setEditingCat(null)} className="rounded-xl border border-border px-5 py-2.5 text-sm font-medium">Cancel</button>
+              <button onClick={saveCategory} className="rounded-xl bg-[hsl(var(--navy))] px-5 py-2.5 text-sm font-semibold text-white" style={{ background: "hsl(var(--navy))" }}>
+                {editingCat?.id ? "Save Changes" : "Create Category"}
+              </button>
             </div>
           </div>
         </div>

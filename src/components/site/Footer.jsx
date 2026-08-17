@@ -46,7 +46,7 @@ export default function Footer() {
               <li className="flex items-start gap-2"><MapPin className="h-4 w-4 text-[hsl(var(--gold-light))] mt-0.5" /> Doha, Qatar &middot; Serving the GCC</li>
             </ul>
             <Link to="/subscription" className="mt-5 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-[hsl(var(--navy))] shimmer-gold" style={{ background: "linear-gradient(135deg, #A68336, #E5C578)" }}>
-              Join T2 VIP
+              Membership Plans
             </Link>
           </div>
         </div>
