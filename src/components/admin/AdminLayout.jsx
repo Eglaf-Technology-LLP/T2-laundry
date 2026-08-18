@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ClipboardList, Package, Users, Crown, Home, Menu, X, LogOut, Droplets } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Package, Users, Crown, Home, Menu, X, LogOut, Droplets, Sparkles } from "lucide-react";
 import Logo from "@/components/site/Logo";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
@@ -51,8 +51,15 @@ export default function AdminLayout() {
             </Link>
           ))}
         </nav>
+        <Link
+          to="/services"
+          className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-[hsl(var(--navy))] px-3 py-2.5 text-sm font-semibold text-white"
+          style={{ background: "hsl(var(--navy))" }}
+        >
+          <Sparkles className="h-4 w-4 text-[hsl(var(--gold-light))]" /> Book a Pickup
+        </Link>
       </div>
-      <div className="mt-auto p-4">
+      <div className="p-4">
         <div className="relative rounded-2xl gold-border p-4 text-white">
           <div className="absolute inset-0 -z-10 rounded-2xl" style={{ background: "linear-gradient(135deg, #0E2346, #0F172A)" }} />
           <Crown className="h-5 w-5 text-[hsl(var(--gold-light))]" />
