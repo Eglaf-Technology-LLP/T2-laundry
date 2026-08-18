@@ -106,8 +106,8 @@ export default function AdminPlans() {
             </div>
             <p className="mt-2 text-xs text-foreground/55">{plan.bookings_per_month} bookings · {plan.eligible_items} items /mo</p>
             <ul className="mt-3 space-y-1 flex-1">
-              {(plan.features || []).slice(0, 4).map((f) => (
-                <li key={f} className="text-xs text-foreground/60 truncate">• {f}</li>
+              {(plan.features || []).slice(0, 4).map((f, i) => (
+                <li key={i} className="text-xs text-foreground/60 truncate">• {f}</li>
               ))}
               {(plan.features || []).length > 4 && <li className="text-xs text-foreground/40">+{plan.features.length - 4} more</li>}
             </ul>

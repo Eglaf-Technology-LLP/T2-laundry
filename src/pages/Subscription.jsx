@@ -197,8 +197,8 @@ function PlanCard({ plan, isCurrent, isUpgrade, submitting, onSubscribe }) {
       </div>
 
       <ul className="mt-6 space-y-2.5 flex-1">
-        {(plan.features || []).map((f) => (
-          <li key={f} className="flex items-start gap-2.5 text-sm">
+        {(plan.features || []).map((f, i) => (
+          <li key={i} className="flex items-start gap-2.5 text-sm">
             <span
               className={
                 featured

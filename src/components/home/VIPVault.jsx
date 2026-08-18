@@ -43,8 +43,8 @@ export default function VIPVault() {
           </div>
 
           <div className="grid sm:grid-cols-2 gap-3">
-            {plan?.features?.map((f) => (
-              <div key={f} className="flex items-start gap-3 rounded-2xl bg-white/5 backdrop-blur p-4 border border-white/10">
+            {plan?.features?.map((f, i) => (
+              <div key={i} className="flex items-start gap-3 rounded-2xl bg-white/5 backdrop-blur p-4 border border-white/10">
                 <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[hsl(var(--gold))] text-[hsl(var(--navy))]">
                   <Check className="h-3.5 w-3.5" />
                 </span>

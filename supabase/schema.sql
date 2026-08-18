@@ -489,10 +489,10 @@ insert into subscription_plans (name, slug, tagline, price, currency, period, bo
   jsonb_build_array('Up to 8 Service Bookings per Month', 'Up to 40 Eligible Items per Month', 'Free Pickup & Delivery', 'Priority Booking', 'Reward Points', 'Exclusive Member Discounts', 'Includes everything in Essential PLUS', 'Free Pickup'),
   false, false, true),
 ('Family', 'family', 'Perfect for families.', 249, 'QAR', 'month', 12, 60,
-  jsonb_build_array('Up to 12 Service Bookings per Month', 'Up to 60 Eligible Items per Month', 'Free Pickup & Delivery', 'Priority Support', 'Family Benefits', 'Reward Points', 'Includes everything in Couple PLUS', 'Free Pickup', 'Priority Support'),
+  jsonb_build_array('Up to 12 Service Bookings per Month', 'Up to 60 Eligible Items per Month', 'Free Pickup & Delivery', 'Priority Support', 'Family Benefits', 'Reward Points', 'Includes everything in Couple PLUS', 'Free Pickup'),
   false, false, true),
 ('VIP', 'vip', 'Premium Membership.', 499, 'QAR', 'month', 20, 120,
-  jsonb_build_array('Up to 20 Service Bookings per Month', 'Up to 120 Eligible Items per Month', 'Unlimited Pickup & Delivery', 'Express Priority Service', 'Dedicated Customer Support', 'Highest Reward Points', 'Exclusive VIP Benefits', 'Includes everything in Family PLUS', 'Free Pickup', 'Express', 'Priority', 'Priority Support'),
+  jsonb_build_array('Up to 20 Service Bookings per Month', 'Up to 120 Eligible Items per Month', 'Unlimited Pickup & Delivery', 'Express Priority Service', 'Dedicated Customer Support', 'Highest Reward Points', 'Exclusive VIP Benefits', 'Includes everything in Family PLUS', 'Free Pickup', 'Express', 'Priority'),
   true, true, true);
 
 -- -----------------------------------------------------------------
