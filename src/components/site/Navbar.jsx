@@ -9,7 +9,6 @@ const NAV_LINKS = [
   { label: "Services", to: "/services" },
   { label: "Subscription", to: "/subscription" },
   { label: "Track Order", to: "/track" },
-  { label: "Admin", to: "/admin" },
 ];
 
 export default function Navbar() {
