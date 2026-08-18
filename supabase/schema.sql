@@ -90,6 +90,7 @@ create table profiles (
   role         text not null default 'customer' check (role in ('customer', 'admin')),
   full_name    text,
   email        text,
+  phone        text,
   created_date timestamptz default now()
 );
 
@@ -148,6 +149,18 @@ create table plan_services (
   plan_id uuid not null references subscription_plans(id) on delete cascade,
   service_id uuid not null references services(id) on delete cascade,
   primary key (plan_id, service_id)
+);
+
+-- A customer's saved delivery addresses. Purely owner-scoped (no
+-- admin/anonymous path needed), so plain RLS is enough — no RPC required
+-- the way members/orders needed one.
+create table addresses (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references auth.users(id) on delete cascade,
+  label        text,
+  address_text text not null,
+  is_default   boolean not null default false,
+  created_date timestamptz default now()
 );
 
 -- -----------------------------------------------------------------
@@ -224,6 +237,7 @@ alter table members enable row level security;
 alter table orders enable row level security;
 alter table plan_items enable row level security;
 alter table plan_services enable row level security;
+alter table addresses enable row level security;
 
 -- Public storefront: read-only on catalogue tables.
 create policy "categories_public_read" on categories for select using (true);
@@ -243,13 +257,13 @@ create policy "services_admin_write" on services for all
 
 -- Profiles: everyone can read/update their own row; admins can read everyone's.
 -- Self-service UPDATE is further restricted at the column level below (grant
--- update (full_name)) so a crafted request can never touch role via this row-
--- level policy alone.
+-- update (full_name, phone)) so a crafted request can never touch role via
+-- this row-level policy alone.
 create policy "profiles_own_read" on profiles for select using (id = auth.uid());
 create policy "profiles_own_update" on profiles for update using (id = auth.uid()) with check (id = auth.uid());
 create policy "profiles_admin_read" on profiles for select using (is_admin());
 revoke update on profiles from authenticated;
-grant update (full_name) on profiles to authenticated;
+grant update (full_name, phone) on profiles to authenticated;
 
 -- Members and orders contain customer PII — no blanket public table access.
 -- Public writes/reads for these go through the SECURITY DEFINER RPCs below,
@@ -270,6 +284,10 @@ create policy "plan_items_admin_write" on plan_items for all
 create policy "plan_services_public_read" on plan_services for select using (true);
 create policy "plan_services_admin_write" on plan_services for all
   using (is_admin()) with check (is_admin());
+
+-- Addresses: purely owner-scoped, no admin/anonymous path needed.
+create policy "addresses_own_all" on addresses for all
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 -- -----------------------------------------------------------------
 -- RPCs: the only way the public storefront can write/read members & orders.

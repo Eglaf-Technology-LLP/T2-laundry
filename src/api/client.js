@@ -140,6 +140,19 @@ const PlanServices = {
   },
 };
 
+const baseAddress = makeEntityClient('addresses');
+const Address = {
+  ...baseAddress,
+  // RLS requires user_id = auth.uid() on insert — fill it in here so every
+  // call site doesn't need to thread the current user's id through.
+  async create(body) {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
+    if (!userData.user) throw new Error('Not authenticated');
+    return baseAddress.create({ ...body, user_id: userData.user.id });
+  },
+};
+
 export const api = {
   entities: {
     Category: makeEntityClient('categories'),
@@ -148,6 +161,7 @@ export const api = {
     SubscriptionPlan: makeEntityClient('subscription_plans'),
     Member,
     Order,
+    Address,
     PlanItems,
     PlanServices,
   },
@@ -213,6 +227,27 @@ export const api = {
         items: allItems.filter((i) => itemIds.includes(i.id)),
         services: allServices.filter((s) => serviceIds.includes(s.id)),
       };
+    },
+    // The caller's currently-active+paid membership (or null if none) plus
+    // the set of item ids their plan covers — used by the Services page and
+    // cart to show "included in your plan" and price plan items as free up
+    // to the remaining quota. Mirrors create_order's own membership lookup
+    // (most recent active+paid row) so pricing here matches what the RPC
+    // will actually count against usage when the order is placed.
+    async getMyPlanState() {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!userData.user) return { membership: null, planItemIds: [] };
+      const { data: rows, error } = await supabase
+        .from('members')
+        .select('*')
+        .eq('user_id', userData.user.id)
+        .order('created_date', { ascending: false });
+      if (error) throw error;
+      const membership = (rows || []).find((m) => m.status === 'active' && m.payment_status === 'paid') || null;
+      if (!membership) return { membership: null, planItemIds: [] };
+      const planItemIds = await PlanItems.listForPlan(membership.plan_id);
+      return { membership, planItemIds };
     },
   },
 };
