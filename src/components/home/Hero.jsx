@@ -1,8 +1,27 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Clock, Truck } from "lucide-react";
+import { ArrowRight, Sparkles, Clock, Truck, Sparkle } from "lucide-react";
 import WashingMachine3D from "@/components/home/WashingMachine3D";
+import ErrorBoundary from "@/components/ErrorBoundary";
+
+// WebGL context creation can fail on older/low-memory mobile devices, in
+// Safari low-power mode, or with too many GPU contexts already open —
+// without this, that failure was an uncaught render error that blanked the
+// entire page. This keeps the rest of the homepage intact if it happens.
+function Washing3DSafe() {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div className="h-full w-full grid place-items-center bg-gradient-to-br from-[hsl(var(--navy))] to-[#1a3a6b]">
+          <Sparkle className="h-10 w-10 text-[hsl(var(--gold-light))]" />
+        </div>
+      }
+    >
+      <WashingMachine3D />
+    </ErrorBoundary>
+  );
+}
 
 const container = {
   hidden: {},
@@ -23,7 +42,7 @@ export default function Hero() {
 
       {/* Desktop: 3D washing machine fills the right half of the hero */}
       <div className="hidden lg:block absolute inset-y-0 right-0 w-1/2 xl:w-[55%]">
-        <WashingMachine3D />
+        <Washing3DSafe />
       </div>
 
       <motion.div
@@ -73,7 +92,7 @@ export default function Hero() {
 
         {/* Mobile/tablet: 3D washing machine shown in-flow below the text */}
         <motion.div variants={item} className="lg:hidden relative mt-12 h-72 sm:h-96 rounded-3xl overflow-hidden steam-glass">
-          <WashingMachine3D />
+          <Washing3DSafe />
         </motion.div>
       </motion.div>
     </section>

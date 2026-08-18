@@ -1,0 +1,11 @@
+# index.html must always be revalidated — if it's cached stale, the browser
+# keeps referencing old content-hashed JS/CSS filenames from a previous
+# deploy that no longer exist on the server, which is a common cause of a
+# blank white screen after a new deploy that a hard refresh doesn't fix.
+/index.html
+  Cache-Control: no-cache
+
+# Vite content-hashes every filename under /assets/, so these are safe to
+# cache forever — a new deploy always ships new filenames, never reuses one.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
