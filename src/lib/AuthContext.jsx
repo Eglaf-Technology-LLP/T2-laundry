@@ -62,7 +62,7 @@ export function AuthProvider({ children }) {
   const role = profile?.role || null;
 
   return (
-    <AuthContext.Provider value={{ isLoadingAuth, isAuthenticated, role, profile, login, signup, logout }}>
+    <AuthContext.Provider value={{ isLoadingAuth, isAuthenticated, role, profile, login, signup, logout, refreshProfile: loadProfile }}>
       {children}
     </AuthContext.Provider>
   );

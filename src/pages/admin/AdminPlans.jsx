@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Plus, X, Crown, Trash2, Pencil } from "lucide-react";
+import { Plus, X, Crown, Trash2, Pencil, Package, Droplets } from "lucide-react";
 import { api } from "@/api/client";
 
 const EMPTY_FORM = {
@@ -9,14 +9,27 @@ const EMPTY_FORM = {
 
 export default function AdminPlans() {
   const [plans, setPlans] = useState([]);
+  const [allItems, setAllItems] = useState([]);
+  const [allServices, setAllServices] = useState([]);
   const [editing, setEditing] = useState(null); // null = closed, {} = add, {...plan} = edit
   const [form, setForm] = useState(EMPTY_FORM);
+  const [selectedItemIds, setSelectedItemIds] = useState([]);
+  const [selectedServiceIds, setSelectedServiceIds] = useState([]);
 
   const load = () => api.entities.SubscriptionPlan.list("price").then(setPlans);
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    api.entities.Item.list("display_order", 200).then(setAllItems);
+    api.entities.Service.list("name", 50).then(setAllServices).catch(() => {});
+  }, []);
 
-  const openAdd = () => { setForm(EMPTY_FORM); setEditing({}); };
-  const openEdit = (plan) => {
+  const openAdd = () => {
+    setForm(EMPTY_FORM);
+    setSelectedItemIds([]);
+    setSelectedServiceIds([]);
+    setEditing({});
+  };
+  const openEdit = async (plan) => {
     setForm({
       name: plan.name || "", slug: plan.slug || "", tagline: plan.tagline || "",
       price: plan.price || 0, currency: plan.currency || "QAR", period: plan.period || "month",
@@ -24,7 +37,16 @@ export default function AdminPlans() {
       features: (plan.features || []).join("\n"), is_vip: !!plan.is_vip, popular: !!plan.popular, active: plan.active !== false,
     });
     setEditing(plan);
+    const [itemIds, serviceIds] = await Promise.all([
+      api.entities.PlanItems.listForPlan(plan.id),
+      api.entities.PlanServices.listForPlan(plan.id),
+    ]);
+    setSelectedItemIds(itemIds);
+    setSelectedServiceIds(serviceIds);
   };
+
+  const toggleItem = (id) => setSelectedItemIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const toggleService = (id) => setSelectedServiceIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const save = async () => {
     if (!form.name) return;
@@ -35,8 +57,15 @@ export default function AdminPlans() {
       eligible_items: +form.eligible_items,
       features: form.features.split("\n").map((f) => f.trim()).filter(Boolean),
     };
-    if (editing?.id) await api.entities.SubscriptionPlan.update(editing.id, payload);
-    else await api.entities.SubscriptionPlan.create(payload);
+    const planId = editing?.id
+      ? (await api.entities.SubscriptionPlan.update(editing.id, payload)).id
+      : (await api.entities.SubscriptionPlan.create(payload)).id;
+
+    await Promise.all([
+      api.entities.PlanItems.replaceForPlan(planId, selectedItemIds),
+      api.entities.PlanServices.replaceForPlan(planId, selectedServiceIds),
+    ]);
+
     setEditing(null);
     load();
   };
@@ -82,6 +111,9 @@ export default function AdminPlans() {
               ))}
               {(plan.features || []).length > 4 && <li className="text-xs text-foreground/40">+{plan.features.length - 4} more</li>}
             </ul>
+            <button onClick={() => openEdit(plan)} className="mt-3 inline-flex items-center gap-1.5 self-start text-xs font-medium text-foreground/50 hover:text-navy">
+              <Package className="h-3.5 w-3.5" /> Manage included items &amp; services
+            </button>
             {plan.popular && <span className="mt-3 self-start rounded-full bg-[hsl(var(--gold))]/15 px-2.5 py-1 text-[10px] font-mono-label text-[hsl(var(--gold-dark))]">Best Value</span>}
           </div>
         ))}
@@ -113,6 +145,32 @@ export default function AdminPlans() {
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={form.is_vip} onChange={(e) => setForm({ ...form, is_vip: e.target.checked })} /> Featured on homepage
               </label>
+
+              <Field label={`Included items (${selectedItemIds.length} selected)`} className="col-span-2">
+                <p className="mb-1.5 text-[11px] text-foreground/45">Orders using these items count against the member's monthly quota. Anything else is billed as a normal paid extra.</p>
+                <div className="max-h-40 overflow-y-auto rounded-xl border border-border p-2 space-y-0.5">
+                  {allItems.map((it) => (
+                    <label key={it.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted cursor-pointer">
+                      <input type="checkbox" checked={selectedItemIds.includes(it.id)} onChange={() => toggleItem(it.id)} />
+                      {it.name} <span className="text-xs text-foreground/40">· {it.category}</span>
+                    </label>
+                  ))}
+                  {!allItems.length && <p className="text-xs text-foreground/40 px-2 py-1.5">No items yet — add some under Items &amp; Categories first.</p>}
+                </div>
+              </Field>
+
+              <Field label={`Included services (${selectedServiceIds.length} selected)`} className="col-span-2">
+                <p className="mb-1.5 text-[11px] text-foreground/45">Descriptive only for now — shown as part of the plan, doesn't affect checkout quota.</p>
+                <div className="max-h-32 overflow-y-auto rounded-xl border border-border p-2 space-y-0.5">
+                  {allServices.map((s) => (
+                    <label key={s.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted cursor-pointer">
+                      <input type="checkbox" checked={selectedServiceIds.includes(s.id)} onChange={() => toggleService(s.id)} />
+                      <Droplets className="h-3.5 w-3.5 text-foreground/40" /> {s.name}
+                    </label>
+                  ))}
+                  {!allServices.length && <p className="text-xs text-foreground/40 px-2 py-1.5">No services yet — add some under Services first.</p>}
+                </div>
+              </Field>
             </div>
             <div className="mt-6 flex gap-2 justify-end">
               <button onClick={() => setEditing(null)} className="rounded-xl border border-border px-5 py-2.5 text-sm font-medium">Cancel</button>

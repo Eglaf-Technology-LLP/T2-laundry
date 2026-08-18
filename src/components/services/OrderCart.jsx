@@ -21,6 +21,7 @@ export default function OrderCart({ lines, items, onQty, onRemove, onClear }) {
     setSubmitting(true);
     try {
       const orderItems = lines.map((l) => ({
+        item_id: l.id,
         name: l.name,
         category: l.category,
         service: l.serviceLabel,

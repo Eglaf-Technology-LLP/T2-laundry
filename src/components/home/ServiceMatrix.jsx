@@ -10,7 +10,7 @@ export default function ServiceMatrix() {
   const [services, setServices] = useState([]);
 
   useEffect(() => {
-    api.entities.Service.list("display_order", 20)
+    api.entities.Service.list("name", 20)
       .then(setServices)
       .catch(() => setServices([]));
   }, []);

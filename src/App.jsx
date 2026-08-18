@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider } from '@/lib/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import RequireAuth from '@/components/RequireAuth';
 import ScrollToTop from './components/ScrollToTop';
 // Add page imports here
 import SiteLayout from '@/components/site/SiteLayout';
@@ -15,6 +16,7 @@ import Subscription from '@/pages/Subscription';
 import TrackOrder from '@/pages/TrackOrder';
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
+import Account from '@/pages/Account';
 import AdminLogin from '@/pages/admin/AdminLogin';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import AdminOrders from '@/pages/admin/AdminOrders';
@@ -39,6 +41,7 @@ function App() {
               <Route path="/track" element={<TrackOrder />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/account" element={<RequireAuth><Account /></RequireAuth>} />
             </Route>
 
             {/* Admin login (public) */}

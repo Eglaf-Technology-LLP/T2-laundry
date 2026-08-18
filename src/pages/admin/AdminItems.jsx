@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Trash2, X, Star, Search, Tags, Pencil } from "lucide-react";
+import { Plus, Trash2, X, Star, Search, Tags, Pencil, Eye, EyeOff } from "lucide-react";
 import { api } from "@/api/client";
 
 const EMPTY_CATEGORY = { name: "", slug: "", description: "", icon: "Shirt" };
+const EMPTY_ITEM = { name: "", category: "", wash_price: 0, iron_price: 0, wash_iron_price: 0, dryclean_price: 0, popular: false };
 
 export default function AdminItems() {
   const [items, setItems] = useState([]);
   const [cats, setCats] = useState([]);
   const [filter, setFilter] = useState("All");
   const [query, setQuery] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", category: "", wash_price: 0, iron_price: 0, wash_iron_price: 0, dryclean_price: 0, popular: false });
+  const [editingItem, setEditingItem] = useState(null); // null = closed, {} = add, {...item} = edit
+  const [form, setForm] = useState(EMPTY_ITEM);
   const [showCategories, setShowCategories] = useState(false);
   const [editingCat, setEditingCat] = useState(null); // null = closed, {} = add, {...cat} = edit
   const [catForm, setCatForm] = useState(EMPTY_CATEGORY);
@@ -18,20 +19,36 @@ export default function AdminItems() {
   const load = async () => {
     const [i, c] = await Promise.all([api.entities.Item.list("display_order", 200), api.entities.Category.list("display_order", 50)]);
     setItems(i); setCats(c);
-    if (c.length && !form.category) setForm((f) => ({ ...f, category: c[0].name }));
   };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { load(); }, []);
 
-  const create = async () => {
+  const openAddItem = () => { setForm({ ...EMPTY_ITEM, category: cats[0]?.name || "" }); setEditingItem({}); };
+  const openEditItem = (it) => {
+    setForm({
+      name: it.name || "", category: it.category || "", wash_price: it.wash_price || 0, iron_price: it.iron_price || 0,
+      wash_iron_price: it.wash_iron_price || 0, dryclean_price: it.dryclean_price || 0, popular: !!it.popular,
+    });
+    setEditingItem(it);
+  };
+
+  const saveItem = async () => {
     if (!form.name || !form.category) return;
-    await api.entities.Item.create({ ...form, display_order: items.length + 1, active: true, eligible_subscription: true });
-    setForm({ name: "", category: form.category, wash_price: 0, iron_price: 0, wash_iron_price: 0, dryclean_price: 0, popular: false });
-    setShowForm(false);
+    if (editingItem?.id) {
+      await api.entities.Item.update(editingItem.id, form);
+    } else {
+      await api.entities.Item.create({ ...form, display_order: items.length + 1, active: true, eligible_subscription: true });
+    }
+    setEditingItem(null);
     load();
   };
 
   const togglePopular = async (it) => {
     await api.entities.Item.update(it.id, { popular: !it.popular });
+    load();
+  };
+
+  const togglePublished = async (it) => {
+    await api.entities.Item.update(it.id, { active: !it.active });
     load();
   };
 
@@ -75,7 +92,7 @@ export default function AdminItems() {
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search items…" className="w-full rounded-xl border border-border bg-white py-2.5 pl-10 pr-3 text-sm" />
           </div>
         </div>
-        <button onClick={() => setShowForm(true)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[hsl(var(--navy))] px-5 py-2.5 text-sm font-semibold text-white" style={{ background: "hsl(var(--navy))" }}>
+        <button onClick={openAddItem} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[hsl(var(--navy))] px-5 py-2.5 text-sm font-semibold text-white" style={{ background: "hsl(var(--navy))" }}>
           <Plus className="h-4 w-4" /> Add Item
         </button>
       </div>
@@ -98,13 +115,20 @@ export default function AdminItems() {
           horizontal-scroll table, neither of which feels like a native app. */}
       <div className="md:hidden space-y-3">
         {filtered.map((it) => (
-          <div key={it.id} className="rounded-2xl bg-white p-4 shadow-sm border border-border/60">
+          <div key={it.id} className={`rounded-2xl bg-white p-4 shadow-sm border border-border/60 ${it.active === false ? "opacity-60" : ""}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="font-medium truncate" style={{ color: "hsl(var(--navy))" }}>{it.name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium truncate" style={{ color: "hsl(var(--navy))" }}>{it.name}</p>
+                  {it.active === false && <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-mono-label text-foreground/50">Unpublished</span>}
+                </div>
                 <p className="text-xs text-foreground/50">{it.category}</p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                <button onClick={() => openEditItem(it)} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-muted"><Pencil className="h-4 w-4" /></button>
+                <button onClick={() => togglePublished(it)} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-muted">
+                  {it.active === false ? <EyeOff className="h-4 w-4 text-foreground/40" /> : <Eye className="h-4 w-4" />}
+                </button>
                 <button onClick={() => togglePopular(it)} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-muted">
                   <Star className={`h-4 w-4 ${it.popular ? "fill-[hsl(var(--gold))] text-[hsl(var(--gold))]" : "text-foreground/30"}`} style={it.popular ? { color: "hsl(var(--gold))" } : {}} />
                 </button>
@@ -143,8 +167,13 @@ export default function AdminItems() {
           </thead>
           <tbody className="divide-y divide-border/60">
             {filtered.map((it) => (
-              <tr key={it.id} className="hover:bg-muted/30">
-                <td className="px-4 py-3 font-medium" style={{ color: "hsl(var(--navy))" }}>{it.name}</td>
+              <tr key={it.id} className={it.active === false ? "opacity-60 hover:bg-muted/30" : "hover:bg-muted/30"}>
+                <td className="px-4 py-3 font-medium" style={{ color: "hsl(var(--navy))" }}>
+                  <span className="flex items-center gap-2">
+                    {it.name}
+                    {it.active === false && <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-mono-label text-foreground/50">Unpublished</span>}
+                  </span>
+                </td>
                 <td className="px-4 py-3 text-foreground/60">{it.category}</td>
                 <td className="px-4 py-3 text-right text-foreground/70">{num(it.wash_price)}</td>
                 <td className="px-4 py-3 text-right text-foreground/70">{num(it.iron_price)}</td>
@@ -155,10 +184,14 @@ export default function AdminItems() {
                     <Star className={`h-4 w-4 mx-auto ${it.popular ? "fill-[hsl(var(--gold))] text-[hsl(var(--gold))]" : "text-foreground/30"}`} style={it.popular ? { color: "hsl(var(--gold))" } : {}} />
                   </button>
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <button onClick={() => remove(it)} className="grid h-8 w-8 place-items-center rounded-lg text-foreground/40 hover:text-destructive hover:bg-rose-50 ml-auto">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-1">
+                    <button onClick={() => openEditItem(it)} className="grid h-8 w-8 place-items-center rounded-lg hover:bg-muted"><Pencil className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => togglePublished(it)} className="grid h-8 w-8 place-items-center rounded-lg hover:bg-muted" title={it.active === false ? "Publish" : "Unpublish"}>
+                      {it.active === false ? <EyeOff className="h-3.5 w-3.5 text-foreground/40" /> : <Eye className="h-3.5 w-3.5" />}
+                    </button>
+                    <button onClick={() => remove(it)} className="grid h-8 w-8 place-items-center rounded-lg text-foreground/40 hover:text-destructive hover:bg-rose-50"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -169,14 +202,14 @@ export default function AdminItems() {
         </table>
       </div>
 
-      {/* Add modal */}
-      {showForm && (
+      {/* Add/edit item modal */}
+      {editingItem !== null && (
         <div className="fixed inset-0 z-50 grid place-items-center p-4">
-          <div className="absolute inset-0 bg-navy/30 backdrop-blur-sm" onClick={() => setShowForm(false)} />
+          <div className="absolute inset-0 bg-navy/30 backdrop-blur-sm" onClick={() => setEditingItem(null)} />
           <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-semibold" style={{ color: "hsl(var(--navy))" }}>Add Item</h3>
-              <button onClick={() => setShowForm(false)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-muted"><X className="h-5 w-5" /></button>
+              <h3 className="text-lg font-semibold" style={{ color: "hsl(var(--navy))" }}>{editingItem?.id ? "Edit Item" : "Add Item"}</h3>
+              <button onClick={() => setEditingItem(null)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-muted"><X className="h-5 w-5" /></button>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Name" className="col-span-2"><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" /></Field>
@@ -194,8 +227,10 @@ export default function AdminItems() {
               </label>
             </div>
             <div className="mt-6 flex gap-2 justify-end">
-              <button onClick={() => setShowForm(false)} className="rounded-xl border border-border px-5 py-2.5 text-sm font-medium">Cancel</button>
-              <button onClick={create} className="rounded-xl bg-[hsl(var(--navy))] px-5 py-2.5 text-sm font-semibold text-white" style={{ background: "hsl(var(--navy))" }}>Create Item</button>
+              <button onClick={() => setEditingItem(null)} className="rounded-xl border border-border px-5 py-2.5 text-sm font-medium">Cancel</button>
+              <button onClick={saveItem} className="rounded-xl bg-[hsl(var(--navy))] px-5 py-2.5 text-sm font-semibold text-white" style={{ background: "hsl(var(--navy))" }}>
+                {editingItem?.id ? "Save Changes" : "Create Item"}
+              </button>
             </div>
           </div>
         </div>

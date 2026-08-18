@@ -102,7 +102,7 @@ create table members (
   phone            varchar(40) not null,
   plan_name        varchar(120),
   status           member_status default 'active',
-  payment_status   text not null default 'pending' check (payment_status in ('pending', 'paid')),
+  payment_status   text not null default 'paid' check (payment_status in ('pending', 'paid')),
   start_date       date,
   end_date         date,
   bookings_used    int default 0,
@@ -115,6 +115,7 @@ create table members (
 
 create table orders (
   id              uuid primary key default gen_random_uuid(),
+  user_id         uuid references auth.users(id),
   order_code      varchar(20) not null unique,
   customer_name   varchar(150) not null,
   customer_phone  varchar(40) not null,
@@ -132,6 +133,21 @@ create table orders (
   notes           text,
   created_date    timestamptz default now(),
   updated_date    timestamptz default now()
+);
+
+-- Which catalog entries a plan includes. plan_items drives real usage
+-- tracking at checkout; plan_services is descriptive only (checkout prices
+-- items by their own wash/iron/dryclean columns, not a services-table row).
+create table plan_items (
+  plan_id uuid not null references subscription_plans(id) on delete cascade,
+  item_id uuid not null references items(id) on delete cascade,
+  primary key (plan_id, item_id)
+);
+
+create table plan_services (
+  plan_id uuid not null references subscription_plans(id) on delete cascade,
+  service_id uuid not null references services(id) on delete cascade,
+  primary key (plan_id, service_id)
 );
 
 -- -----------------------------------------------------------------
@@ -206,6 +222,8 @@ alter table subscription_plans enable row level security;
 alter table profiles enable row level security;
 alter table members enable row level security;
 alter table orders enable row level security;
+alter table plan_items enable row level security;
+alter table plan_services enable row level security;
 
 -- Public storefront: read-only on catalogue tables.
 create policy "categories_public_read" on categories for select using (true);
@@ -224,19 +242,34 @@ create policy "services_admin_write" on services for all
   using (is_admin()) with check (is_admin());
 
 -- Profiles: everyone can read/update their own row; admins can read everyone's.
+-- Self-service UPDATE is further restricted at the column level below (grant
+-- update (full_name)) so a crafted request can never touch role via this row-
+-- level policy alone.
 create policy "profiles_own_read" on profiles for select using (id = auth.uid());
 create policy "profiles_own_update" on profiles for update using (id = auth.uid()) with check (id = auth.uid());
 create policy "profiles_admin_read" on profiles for select using (is_admin());
+revoke update on profiles from authenticated;
+grant update (full_name) on profiles to authenticated;
 
 -- Members and orders contain customer PII — no blanket public table access.
 -- Public writes/reads for these go through the SECURITY DEFINER RPCs below,
--- plus each customer can read their own membership row directly.
+-- plus each customer can read their own membership/orders directly.
 create policy "members_admin_read" on members for select using (is_admin());
 create policy "members_admin_delete" on members for delete using (is_admin());
 create policy "members_own_read" on members for select using (user_id = auth.uid());
 
 create policy "orders_admin_read" on orders for select using (is_admin());
 create policy "orders_admin_update" on orders for update using (is_admin()) with check (is_admin());
+create policy "orders_own_read" on orders for select using (user_id = auth.uid());
+
+-- Public read on plan↔catalog links (storefront can show "what's included"),
+-- admin-only writes.
+create policy "plan_items_public_read" on plan_items for select using (true);
+create policy "plan_items_admin_write" on plan_items for all
+  using (is_admin()) with check (is_admin());
+create policy "plan_services_public_read" on plan_services for select using (true);
+create policy "plan_services_admin_write" on plan_services for all
+  using (is_admin()) with check (is_admin());
 
 -- -----------------------------------------------------------------
 -- RPCs: the only way the public storefront can write/read members & orders.
@@ -244,6 +277,11 @@ create policy "orders_admin_update" on orders for update using (is_admin()) with
 -- returns/touches exactly one row, never a table scan.
 -- -----------------------------------------------------------------
 
+-- Attributes the order to the logged-in caller (if any) and, when that
+-- caller has an active+paid membership, counts whichever ordered items are
+-- included in that plan against their monthly quota. Items outside the
+-- plan are simply billed as-is through the order's own total — never
+-- blocked, just not counted toward usage.
 create or replace function create_order(
   p_order_code text,
   p_customer_name text,
@@ -263,15 +301,47 @@ set search_path = public
 as $$
 declare
   v_order orders;
+  v_member members;
+  v_line jsonb;
+  v_item_id uuid;
+  v_qty int;
+  v_plan_item_qty int := 0;
 begin
   insert into orders (
-    order_code, customer_name, customer_phone, customer_email, address,
+    user_id, order_code, customer_name, customer_phone, customer_email, address,
     pickup_type, pickup_date, pickup_slot, items, total, status, payment_status, notes
   ) values (
-    p_order_code, p_customer_name, p_customer_phone, p_customer_email, p_address,
+    auth.uid(), p_order_code, p_customer_name, p_customer_phone, p_customer_email, p_address,
     p_pickup_type, p_pickup_date, p_pickup_slot, p_items, p_total, 'pending', 'unpaid', p_notes
   )
   returning * into v_order;
+
+  if auth.uid() is not null then
+    select * into v_member from members
+      where user_id = auth.uid() and status = 'active' and payment_status = 'paid'
+      order by created_date desc limit 1;
+
+    if found then
+      for v_line in select * from jsonb_array_elements(p_items)
+      loop
+        v_item_id := nullif(v_line->>'item_id', '')::uuid;
+        v_qty := coalesce((v_line->>'quantity')::int, 0);
+        if v_item_id is not null and exists (
+          select 1 from plan_items where plan_id = v_member.plan_id and item_id = v_item_id
+        ) then
+          v_plan_item_qty := v_plan_item_qty + v_qty;
+        end if;
+      end loop;
+
+      if v_plan_item_qty > 0 then
+        update members
+        set bookings_used = bookings_used + 1,
+            items_used = items_used + v_plan_item_qty
+        where id = v_member.id;
+      end if;
+    end if;
+  end if;
+
   return v_order;
 end;
 $$;
@@ -321,13 +391,52 @@ begin
     bookings_used, bookings_allowed, items_used, items_allowed, payment_status
   ) values (
     v_user_id, p_full_name, p_email, p_phone, p_plan_id, p_plan_name, coalesce(p_status, 'active'), p_start_date, p_end_date,
-    coalesce(p_bookings_used, 0), coalesce(p_bookings_allowed, 4), coalesce(p_items_used, 0), coalesce(p_items_allowed, 20), 'pending'
+    coalesce(p_bookings_used, 0), coalesce(p_bookings_allowed, 4), coalesce(p_items_used, 0), coalesce(p_items_allowed, 20), 'paid'
   )
   returning * into v_member;
   return v_member;
 end;
 $$;
 grant execute on function create_member to authenticated;
+
+-- Switches the caller's own membership to a different plan. Resolves the
+-- membership via auth.uid(), never a client-supplied id, so it can't target
+-- anyone else's row.
+create or replace function upgrade_membership(p_plan_id uuid)
+returns members
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_plan subscription_plans;
+  v_member members;
+begin
+  select * into v_plan from subscription_plans where id = p_plan_id;
+  if not found then
+    raise exception 'Plan not found';
+  end if;
+
+  update members
+  set plan_id = v_plan.id,
+      plan_name = v_plan.name,
+      bookings_allowed = v_plan.bookings_per_month,
+      items_allowed = v_plan.eligible_items,
+      status = 'active',
+      payment_status = 'paid',
+      start_date = current_date,
+      end_date = current_date + 30
+  where user_id = auth.uid()
+  returning * into v_member;
+
+  if not found then
+    raise exception 'No membership found to upgrade — subscribe to a plan first.';
+  end if;
+
+  return v_member;
+end;
+$$;
+grant execute on function upgrade_membership to authenticated;
 
 -- -----------------------------------------------------------------
 -- Seed: Categories

@@ -96,6 +96,42 @@ const Member = {
   },
 };
 
+// Junction tables (composite plan_id+item_id / plan_id+service_id primary
+// keys, no single `id` column) — don't fit makeEntityClient's row-by-id
+// shape, so these are purpose-built: read the current link set for a plan,
+// or replace it wholesale (delete all, insert the selected set).
+const PlanItems = {
+  async listForPlan(planId) {
+    const { data, error } = await supabase.from('plan_items').select('item_id').eq('plan_id', planId);
+    if (error) throw error;
+    return data.map((r) => r.item_id);
+  },
+  async replaceForPlan(planId, itemIds) {
+    const { error: delError } = await supabase.from('plan_items').delete().eq('plan_id', planId);
+    if (delError) throw delError;
+    if (itemIds.length) {
+      const { error: insError } = await supabase.from('plan_items').insert(itemIds.map((item_id) => ({ plan_id: planId, item_id })));
+      if (insError) throw insError;
+    }
+  },
+};
+
+const PlanServices = {
+  async listForPlan(planId) {
+    const { data, error } = await supabase.from('plan_services').select('service_id').eq('plan_id', planId);
+    if (error) throw error;
+    return data.map((r) => r.service_id);
+  },
+  async replaceForPlan(planId, serviceIds) {
+    const { error: delError } = await supabase.from('plan_services').delete().eq('plan_id', planId);
+    if (delError) throw delError;
+    if (serviceIds.length) {
+      const { error: insError } = await supabase.from('plan_services').insert(serviceIds.map((service_id) => ({ plan_id: planId, service_id })));
+      if (insError) throw insError;
+    }
+  },
+};
+
 export const api = {
   entities: {
     Category: makeEntityClient('categories'),
@@ -104,6 +140,8 @@ export const api = {
     SubscriptionPlan: makeEntityClient('subscription_plans'),
     Member,
     Order,
+    PlanItems,
+    PlanServices,
   },
   auth: {
     async login(email, password) {
@@ -136,6 +174,23 @@ export const api = {
     async logout() {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+    },
+    // Column-level grant on profiles restricts this to full_name regardless
+    // of what's in `fields` — see supabase/migrations/0003_*.sql.
+    async updateProfile(fields) {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!userData.user) throw new Error('Not authenticated');
+      const { data, error } = await supabase.from('profiles').update(fields).eq('id', userData.user.id).select().single();
+      if (error) throw error;
+      return data;
+    },
+  },
+  membership: {
+    async upgrade(planId) {
+      const { data, error } = await supabase.rpc('upgrade_membership', { p_plan_id: planId });
+      if (error) throw error;
+      return data;
     },
   },
 };

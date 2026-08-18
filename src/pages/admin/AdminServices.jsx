@@ -9,7 +9,11 @@ export default function AdminServices() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  const load = () => api.entities.Service.list("display_order", 50).then(setServices);
+  // services has no display_order column — sorting by it threw on every
+  // load with no .catch(), so the list silently never rendered (this was
+  // the real "Add Service isn't working" bug: the insert succeeded, the
+  // list just never re-fetched successfully to show it).
+  const load = () => api.entities.Service.list("name", 50).then(setServices).catch(() => {});
   useEffect(() => { load(); }, []);
 
   const openAdd = () => { setForm(EMPTY_FORM); setEditing({}); };

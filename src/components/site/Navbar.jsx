@@ -60,12 +60,22 @@ export default function Navbar() {
 
           <div className="flex items-center gap-2">
             {isAuthenticated ? (
-              <button
-                onClick={handleLogout}
-                className="hidden sm:inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-navy"
-              >
-                <LogOut className="h-4 w-4" /> Log out
-              </button>
+              <>
+                <Link
+                  to="/account"
+                  className="hidden sm:inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-navy"
+                >
+                  <User className="h-4 w-4" /> My Account
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  aria-label="Log out"
+                  title="Log out"
+                  className="hidden sm:grid place-items-center h-10 w-10 rounded-full text-foreground/50 hover:text-navy hover:bg-muted"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </>
             ) : (
               <Link
                 to="/login"
@@ -103,9 +113,14 @@ export default function Navbar() {
               </Link>
             ))}
             {isAuthenticated ? (
-              <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium hover:bg-white/60 text-left">
-                <LogOut className="h-4 w-4" /> Log out
-              </button>
+              <>
+                <Link to="/account" className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium hover:bg-white/60">
+                  <User className="h-4 w-4" /> My Account
+                </Link>
+                <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium hover:bg-white/60 text-left">
+                  <LogOut className="h-4 w-4" /> Log out
+                </button>
+              </>
             ) : (
               <Link to="/login" className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium hover:bg-white/60">
                 <User className="h-4 w-4" /> Log in
