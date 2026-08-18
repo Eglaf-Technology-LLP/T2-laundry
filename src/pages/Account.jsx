@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { User, Crown, Package, ArrowUpCircle, AlertCircle } from "lucide-react";
+import { User, Crown, Package, ArrowUpCircle, AlertCircle, MapPin, Plus, Trash2, Star } from "lucide-react";
 import { api } from "@/api/client";
 import { useAuth } from "@/lib/AuthContext";
 import PlanConfirmationModal from "@/components/PlanConfirmationModal";
@@ -18,6 +18,7 @@ const STATUS_STYLE = {
 export default function Account() {
   const { profile, refreshProfile } = useAuth();
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [membership, setMembership] = useState(null);
   const [plans, setPlans] = useState([]);
@@ -26,9 +27,14 @@ export default function Account() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeError, setUpgradeError] = useState("");
   const [confirmation, setConfirmation] = useState(null); // { plan, items, services }
+  const [addresses, setAddresses] = useState([]);
+  const [addingAddress, setAddingAddress] = useState(false);
+  const [newAddress, setNewAddress] = useState({ label: "", address_text: "" });
+  const [addressError, setAddressError] = useState("");
 
   useEffect(() => {
     setFullName(profile?.full_name || "");
+    setPhone(profile?.phone || "");
   }, [profile]);
 
   const load = () => {
@@ -38,16 +44,53 @@ export default function Account() {
       .then((rows) => setOrders([...rows].sort((a, b) => new Date(b.created_date) - new Date(a.created_date))))
       .catch(() => {});
     api.entities.SubscriptionPlan.list("price").then(setPlans).catch(() => {});
+    api.entities.Address.list("-is_default").then(setAddresses).catch(() => {});
   };
   useEffect(load, [profile]);
 
   const saveProfile = async () => {
     setSavingProfile(true);
     try {
-      await api.auth.updateProfile({ full_name: fullName });
+      await api.auth.updateProfile({ full_name: fullName, phone });
       await refreshProfile();
     } finally {
       setSavingProfile(false);
+    }
+  };
+
+  const addAddress = async () => {
+    if (!newAddress.address_text.trim()) return;
+    setAddressError("");
+    try {
+      const created = await api.entities.Address.create({
+        label: newAddress.label || null,
+        address_text: newAddress.address_text,
+        is_default: addresses.length === 0,
+      });
+      setAddresses((prev) => [created, ...prev]);
+      setNewAddress({ label: "", address_text: "" });
+      setAddingAddress(false);
+    } catch (err) {
+      setAddressError(err?.message || "Couldn't save that address — please try again.");
+    }
+  };
+
+  const deleteAddress = async (id) => {
+    try {
+      await api.entities.Address.delete(id);
+      setAddresses((prev) => prev.filter((a) => a.id !== id));
+    } catch (err) {
+      setAddressError(err?.message || "Couldn't delete that address — please try again.");
+    }
+  };
+
+  const makeDefault = async (id) => {
+    try {
+      await Promise.all(addresses.filter((a) => a.is_default).map((a) => api.entities.Address.update(a.id, { is_default: false })));
+      await api.entities.Address.update(id, { is_default: true });
+      setAddresses((prev) => prev.map((a) => ({ ...a, is_default: a.id === id })));
+    } catch (err) {
+      setAddressError(err?.message || "Couldn't update that address — please try again.");
     }
   };
 
@@ -89,15 +132,86 @@ export default function Account() {
               <span className="text-xs font-medium text-foreground/50">Email</span>
               <input value={profile.email || ""} disabled className="rounded-xl border border-border bg-muted/50 px-3 py-2.5 text-sm text-foreground/50" />
             </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-foreground/50">Phone</span>
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} className="rounded-xl border border-border bg-white px-3 py-2.5 text-sm" />
+            </label>
           </div>
           <button
             onClick={saveProfile}
-            disabled={savingProfile || fullName === (profile.full_name || "")}
+            disabled={savingProfile || (fullName === (profile.full_name || "") && phone === (profile.phone || ""))}
             className="mt-4 rounded-xl bg-[hsl(var(--navy))] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
             style={{ background: "hsl(var(--navy))" }}
           >
             {savingProfile ? "Saving…" : "Save changes"}
           </button>
+        </div>
+
+        {/* Addresses */}
+        <div className="rounded-2xl bg-white p-6 shadow-sm border border-border/60 mb-6">
+          <div className="flex items-center justify-between">
+            <h2 className="flex items-center gap-2 font-semibold" style={{ color: "hsl(var(--navy))" }}><MapPin className="h-4 w-4" /> Manage Addresses</h2>
+            {!addingAddress && (
+              <button onClick={() => setAddingAddress(true)} className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: "hsl(var(--navy))" }}>
+                <Plus className="h-3.5 w-3.5" /> Add address
+              </button>
+            )}
+          </div>
+
+          {addressError && (
+            <div className="mt-4 rounded-xl bg-rose-50 border border-rose-200 p-3 flex items-center gap-2.5 text-rose-700 text-xs">
+              <AlertCircle className="h-4 w-4 shrink-0" /> {addressError}
+            </div>
+          )}
+
+          {addingAddress && (
+            <div className="mt-4 space-y-2 rounded-xl border border-dashed border-border p-4">
+              <input
+                placeholder="Label (e.g. Home, Office)"
+                value={newAddress.label}
+                onChange={(e) => setNewAddress((f) => ({ ...f, label: e.target.value }))}
+                className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm"
+              />
+              <textarea
+                placeholder="Full address"
+                value={newAddress.address_text}
+                onChange={(e) => setNewAddress((f) => ({ ...f, address_text: e.target.value }))}
+                className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm"
+                rows={2}
+              />
+              <div className="flex gap-2">
+                <button onClick={addAddress} className="rounded-xl bg-[hsl(var(--navy))] px-4 py-2 text-xs font-semibold text-white" style={{ background: "hsl(var(--navy))" }}>Save address</button>
+                <button onClick={() => { setAddingAddress(false); setNewAddress({ label: "", address_text: "" }); }} className="rounded-xl border border-border px-4 py-2 text-xs">Cancel</button>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4 space-y-2">
+            {addresses.map((a) => (
+              <div key={a.id} className="flex items-start gap-3 rounded-xl bg-muted/40 px-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold truncate" style={{ color: "hsl(var(--navy))" }}>{a.label || "Address"}</p>
+                    {a.is_default && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Default</span>}
+                  </div>
+                  <p className="text-xs text-foreground/55 mt-0.5">{a.address_text}</p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  {!a.is_default && (
+                    <button onClick={() => makeDefault(a.id)} title="Set as default" className="grid h-8 w-8 place-items-center rounded-lg text-foreground/40 hover:text-[hsl(var(--gold-dark))]">
+                      <Star className="h-4 w-4" />
+                    </button>
+                  )}
+                  <button onClick={() => deleteAddress(a.id)} title="Delete" className="grid h-8 w-8 place-items-center rounded-lg text-foreground/40 hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {!addresses.length && !addingAddress && (
+              <p className="text-sm text-foreground/40 py-4 text-center">No saved addresses yet — add one so checkout is a single click.</p>
+            )}
+          </div>
         </div>
 
         {/* Membership */}
