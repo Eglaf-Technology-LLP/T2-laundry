@@ -103,33 +103,68 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
-      <div className={cn("md:hidden overflow-hidden transition-all duration-300 mx-4 sm:mx-6", open ? "max-h-96 mt-2" : "max-h-0")}>
-        <div className="steam-glass rounded-2xl p-4 shadow-xl">
-          <nav className="flex flex-col gap-1">
+      {/* Mobile menu — full-height drawer sliding in from the right. Nav
+          links + account row sit in a centered flex-1 block sized to fit
+          without scrolling; Book a Pickup stays pinned to the bottom. */}
+      <div className={cn("md:hidden fixed inset-0 z-50", open ? "visible" : "invisible")}>
+        <div
+          className={cn("absolute inset-0 bg-navy/40 backdrop-blur-sm transition-opacity duration-300", open ? "opacity-100" : "opacity-0")}
+          onClick={() => setOpen(false)}
+        />
+        <div
+          className={cn(
+            "absolute right-0 top-0 h-full w-[82%] max-w-xs bg-white shadow-2xl flex flex-col transition-transform duration-300",
+            open ? "translate-x-0" : "translate-x-full"
+          )}
+        >
+          <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
+            <Logo size="sm" />
+            <button onClick={() => setOpen(false)} aria-label="Close menu" className="grid h-10 w-10 place-items-center rounded-full hover:bg-muted">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <nav className="flex-1 flex flex-col justify-center gap-1 px-6 min-h-0">
             {NAV_LINKS.map((l) => (
-              <Link key={l.to} to={l.to} className="px-4 py-3 rounded-xl text-sm font-medium hover:bg-white/60">
+              <Link
+                key={l.to}
+                to={l.to}
+                onClick={() => setOpen(false)}
+                className="py-3 text-2xl font-semibold transition-colors"
+                style={location.pathname === l.to ? { color: "hsl(var(--navy))" } : { color: "hsl(var(--foreground))" }}
+              >
                 {l.label}
               </Link>
             ))}
-            {isAuthenticated ? (
-              <>
-                <Link to="/account" className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium hover:bg-white/60">
-                  <User className="h-4 w-4" /> My Account
+
+            <div className="mt-4 pt-4 border-t border-border flex flex-col gap-1">
+              {isAuthenticated ? (
+                <>
+                  <Link to="/account" onClick={() => setOpen(false)} className="flex items-center gap-2 py-2.5 text-base font-medium text-foreground/70">
+                    <User className="h-4 w-4" /> My Account
+                  </Link>
+                  <button onClick={handleLogout} className="flex items-center gap-2 py-2.5 text-base font-medium text-foreground/70 text-left">
+                    <LogOut className="h-4 w-4" /> Log out
+                  </button>
+                </>
+              ) : (
+                <Link to="/login" onClick={() => setOpen(false)} className="flex items-center gap-2 py-2.5 text-base font-medium text-foreground/70">
+                  <User className="h-4 w-4" /> Log in
                 </Link>
-                <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium hover:bg-white/60 text-left">
-                  <LogOut className="h-4 w-4" /> Log out
-                </button>
-              </>
-            ) : (
-              <Link to="/login" className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium hover:bg-white/60">
-                <User className="h-4 w-4" /> Log in
-              </Link>
-            )}
-            <Link to="/services" className="mt-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[hsl(var(--navy))] px-5 py-3 text-sm font-semibold text-white">
+              )}
+            </div>
+          </nav>
+
+          <div className="shrink-0 p-5 border-t border-border">
+            <Link
+              to="/services"
+              onClick={() => setOpen(false)}
+              className="flex items-center justify-center gap-2 rounded-xl bg-[hsl(var(--navy))] px-5 py-3.5 text-sm font-semibold text-white"
+              style={{ background: "hsl(var(--navy))" }}
+            >
               <Sparkles className="h-4 w-4 text-[hsl(var(--gold-light))]" /> Book a Pickup
             </Link>
-          </nav>
+          </div>
         </div>
       </div>
     </header>
