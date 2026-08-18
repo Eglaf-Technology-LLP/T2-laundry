@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus, Minus, Check, Droplets, Wind, WashingMachine, Sparkles } from "lucide-react";
+import { Plus, Minus, Check, Droplets, Wind, WashingMachine, Sparkles, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SERVICE_OPTIONS = [
@@ -9,7 +9,7 @@ const SERVICE_OPTIONS = [
   { key: "dryclean_price", label: "Dry Clean", icon: Sparkles },
 ];
 
-export default function ItemCard({ item, lines = [], onSelectService, onQty }) {
+export default function ItemCard({ item, inPlan, lines = [], onSelectService, onQty }) {
   const available = SERVICE_OPTIONS.filter((o) => (item[o.key] || 0) > 0);
   const lineFor = (key) => lines.find((l) => l.serviceKey === key);
   const total = lines.reduce((s, l) => s + l.price * l.quantity, 0);
@@ -23,6 +23,12 @@ export default function ItemCard({ item, lines = [], onSelectService, onQty }) {
         <h3 className="text-base font-semibold" style={{ color: "hsl(var(--navy))" }}>{item.name}</h3>
         <span className="font-mono-label text-[10px] text-foreground/40">{item.category}</span>
       </div>
+
+      {inPlan && (
+        <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">
+          <ShieldCheck className="h-3 w-3" /> Included in your plan
+        </span>
+      )}
 
       <p className="mt-3 text-[10px] font-mono-label text-foreground/40">Pick any combination of services</p>
       <div className="mt-2 grid grid-cols-2 gap-2">

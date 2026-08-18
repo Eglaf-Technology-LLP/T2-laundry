@@ -1,17 +1,21 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Search, Package } from "lucide-react";
+import { Search, Package, ShieldCheck } from "lucide-react";
 import { api } from "@/api/client";
+import { useAuth } from "@/lib/AuthContext";
 import ItemCard from "@/components/services/ItemCard";
 import OrderCart from "@/components/services/OrderCart";
 
 const SERVICE_LABELS = { wash_price: "Wash", iron_price: "Iron", wash_iron_price: "Wash & Iron", dryclean_price: "Dry Clean" };
 
 export default function Services() {
+  const { isAuthenticated, isLoadingAuth } = useAuth();
   const [items, setItems] = useState([]);
   const [cats, setCats] = useState([]);
   const [activeCat, setActiveCat] = useState("All");
   const [query, setQuery] = useState("");
   const [lines, setLines] = useState([]);
+  const [planState, setPlanState] = useState({ membership: null, planItemIds: [] });
+  const [planIncluded, setPlanIncluded] = useState({ items: [], services: [] });
 
   useEffect(() => {
     Promise.all([
@@ -22,6 +26,21 @@ export default function Services() {
       setCats([{ name: "All", slug: "all" }, ...c]);
     });
   }, []);
+
+  // Drives the "Included in your plan" badges below and the free-vs-extra
+  // split in the cart — only meaningful for a logged-in member.
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    if (!isAuthenticated) { setPlanState({ membership: null, planItemIds: [] }); setPlanIncluded({ items: [], services: [] }); return; }
+    api.membership.getMyPlanState().then((state) => {
+      setPlanState(state);
+      if (state.membership) {
+        api.membership.getIncluded(state.membership.plan_id).then(setPlanIncluded).catch(() => {});
+      } else {
+        setPlanIncluded({ items: [], services: [] });
+      }
+    }).catch(() => {});
+  }, [isAuthenticated, isLoadingAuth]);
 
   const filtered = useMemo(() => {
     return items.filter((it) => {
@@ -61,6 +80,28 @@ export default function Services() {
           <p className="mt-4 text-foreground/60">Choose items, pick a service, and build your order. Transparent pricing, every garment.</p>
         </div>
 
+        {planState.membership && (planIncluded.items.length > 0 || planIncluded.services.length > 0) && (
+          <div className="max-w-3xl mx-auto mb-8 rounded-2xl steam-glass p-5">
+            <p className="flex items-center gap-2 text-xs font-mono-label" style={{ color: "hsl(var(--gold-dark))" }}>
+              <ShieldCheck className="h-3.5 w-3.5" /> Your {planState.membership.plan_name} plan includes
+            </p>
+            {planIncluded.items.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {planIncluded.items.map((i) => (
+                  <span key={i.id} className="rounded-full bg-white px-2.5 py-1 text-xs shadow-sm" style={{ color: "hsl(var(--navy))" }}>{i.name}</span>
+                ))}
+              </div>
+            )}
+            {planIncluded.services.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {planIncluded.services.map((s) => (
+                  <span key={s.id} className="rounded-full bg-[hsl(var(--navy))]/10 px-2.5 py-1 text-xs" style={{ color: "hsl(var(--navy))" }}>{s.name}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Search */}
         <div className="max-w-md mx-auto relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />
@@ -98,6 +139,7 @@ export default function Services() {
               <ItemCard
                 key={item.id}
                 item={item}
+                inPlan={planState.planItemIds.includes(item.id)}
                 lines={lines.filter((l) => l.id === item.id)}
                 onSelectService={addLine}
                 onQty={changeQty}
@@ -110,6 +152,7 @@ export default function Services() {
       <OrderCart
         lines={lines}
         items={items}
+        planState={planState}
         onQty={changeQty}
         onRemove={removeLine}
         onClear={() => setLines([])}
