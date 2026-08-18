@@ -1,23 +1,48 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Clock, Truck, Sparkle } from "lucide-react";
+import { ArrowRight, Sparkles, Clock, Truck, Droplets, Shirt, Wind } from "lucide-react";
 import WashingMachine3D from "@/components/home/WashingMachine3D";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+
+// A WebGL-free stand-in for devices where the 3D scene can't run (WebGL
+// disabled, Safari's fingerprinting protections, very old GPUs) — pure CSS/
+// SVG animation, so it always renders regardless of device capability, and
+// looks like a deliberate design rather than an error state.
+function WashingMachineFallback() {
+  return (
+    <div className="relative h-full w-full grid place-items-center overflow-hidden bg-gradient-to-br from-[hsl(var(--navy))] to-[#1a3a6b]">
+      <div className="absolute h-40 w-40 rounded-full bg-[hsl(var(--gold))]/10 blur-2xl" />
+      <motion.div
+        className="relative grid h-32 w-32 place-items-center rounded-full border-4 border-[hsl(var(--gold))]/70"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+      >
+        <div className="grid h-24 w-24 place-items-center rounded-full bg-white/10 backdrop-blur">
+          <Droplets className="h-8 w-8 text-[hsl(var(--gold-light))]" />
+        </div>
+        {[Shirt, Wind, Sparkles].map((Icon, i) => (
+          <div
+            key={i}
+            className="absolute grid h-7 w-7 place-items-center rounded-full bg-[hsl(var(--gold))] text-[hsl(var(--navy))]"
+            style={{ transform: `rotate(${i * 120}deg) translate(58px) rotate(${-i * 120}deg)` }}
+          >
+            <Icon className="h-3.5 w-3.5" />
+          </div>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
 
 // WebGL context creation can fail on older/low-memory mobile devices, in
-// Safari low-power mode, or with too many GPU contexts already open —
-// without this, that failure was an uncaught render error that blanked the
-// entire page. This keeps the rest of the homepage intact if it happens.
+// Safari low-power mode/privacy protections, or with too many GPU contexts
+// already open — without this, that failure was an uncaught render error
+// that blanked the entire page. This keeps the rest of the homepage intact.
 function Washing3DSafe() {
   return (
-    <ErrorBoundary
-      fallback={
-        <div className="h-full w-full grid place-items-center bg-gradient-to-br from-[hsl(var(--navy))] to-[#1a3a6b]">
-          <Sparkle className="h-10 w-10 text-[hsl(var(--gold-light))]" />
-        </div>
-      }
-    >
+    <ErrorBoundary fallback={<WashingMachineFallback />}>
       <WashingMachine3D />
     </ErrorBoundary>
   );
@@ -33,6 +58,13 @@ const item = {
 };
 
 export default function Hero() {
+  // Tailwind's `lg` breakpoint. Mounting only the on-screen variant — instead
+  // of always rendering both and CSS-hiding one — means every page load
+  // allocates exactly one WebGL context instead of two, which matters on
+  // mobile browsers (iOS Safari especially) that cap simultaneous WebGL
+  // contexts very low.
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+
   return (
     <section className="relative overflow-hidden">
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white via-[hsl(var(--alabaster))] to-white" />
@@ -42,7 +74,7 @@ export default function Hero() {
 
       {/* Desktop: 3D washing machine fills the right half of the hero */}
       <div className="hidden lg:block absolute inset-y-0 right-0 w-1/2 xl:w-[55%]">
-        <Washing3DSafe />
+        {isDesktop && <Washing3DSafe />}
       </div>
 
       <motion.div
@@ -92,7 +124,7 @@ export default function Hero() {
 
         {/* Mobile/tablet: 3D washing machine shown in-flow below the text */}
         <motion.div variants={item} className="lg:hidden relative mt-12 h-72 sm:h-96 rounded-3xl overflow-hidden steam-glass">
-          <Washing3DSafe />
+          {!isDesktop && <Washing3DSafe />}
         </motion.div>
       </motion.div>
     </section>
