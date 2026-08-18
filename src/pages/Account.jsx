@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { User, Crown, Package, ArrowUpCircle } from "lucide-react";
+import { User, Crown, Package, ArrowUpCircle, AlertCircle } from "lucide-react";
 import { api } from "@/api/client";
 import { useAuth } from "@/lib/AuthContext";
+import PlanConfirmationModal from "@/components/PlanConfirmationModal";
 
 const STATUS_STYLE = {
   pending: "bg-amber-100 text-amber-700",
@@ -23,6 +24,8 @@ export default function Account() {
   const [orders, setOrders] = useState([]);
   const [upgradingId, setUpgradingId] = useState(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [upgradeError, setUpgradeError] = useState("");
+  const [confirmation, setConfirmation] = useState(null); // { plan, items, services }
 
   useEffect(() => {
     setFullName(profile?.full_name || "");
@@ -48,14 +51,17 @@ export default function Account() {
     }
   };
 
-  const upgrade = async (planId) => {
-    setUpgradingId(planId);
+  const upgrade = async (plan) => {
+    setUpgradingId(plan.id);
+    setUpgradeError("");
     try {
-      const updated = await api.membership.upgrade(planId);
+      const updated = await api.membership.upgrade(plan.id);
       setMembership(updated);
       setShowUpgrade(false);
-    } catch {
-      // leave the upgrade panel open so they can retry
+      const included = await api.membership.getIncluded(plan.id).catch(() => ({ items: [], services: [] }));
+      setConfirmation({ plan, items: included.items, services: included.services });
+    } catch (err) {
+      setUpgradeError(err?.message || "Something went wrong — please try again.");
     } finally {
       setUpgradingId(null);
     }
@@ -120,6 +126,12 @@ export default function Account() {
                 <ArrowUpCircle className="h-4 w-4" /> {showUpgrade ? "Hide plans" : "Upgrade plan"}
               </button>
 
+              {upgradeError && (
+                <div className="mt-4 rounded-xl bg-rose-50 border border-rose-200 p-3 flex items-center gap-2.5 text-rose-700 text-xs">
+                  <AlertCircle className="h-4 w-4 shrink-0" /> {upgradeError}
+                </div>
+              )}
+
               {showUpgrade && (
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {plans.filter((p) => p.id !== membership.plan_id).map((p) => (
@@ -129,7 +141,7 @@ export default function Account() {
                         <p className="text-xs text-foreground/50">{p.price} {p.currency}/{p.period}</p>
                       </div>
                       <button
-                        onClick={() => upgrade(p.id)}
+                        onClick={() => upgrade(p)}
                         disabled={upgradingId === p.id}
                         className="shrink-0 rounded-lg bg-[hsl(var(--navy))] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
                         style={{ background: "hsl(var(--navy))" }}
@@ -171,6 +183,15 @@ export default function Account() {
           </div>
         </div>
       </section>
+
+      {confirmation && (
+        <PlanConfirmationModal
+          plan={confirmation.plan}
+          items={confirmation.items}
+          services={confirmation.services}
+          onClose={() => setConfirmation(null)}
+        />
+      )}
     </div>
   );
 }

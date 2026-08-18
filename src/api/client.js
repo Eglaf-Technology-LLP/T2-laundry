@@ -192,5 +192,19 @@ export const api = {
       if (error) throw error;
       return data;
     },
+    // Resolves a plan's included items/services to full rows (name, etc.) for
+    // the post-subscribe/upgrade confirmation screen.
+    async getIncluded(planId) {
+      const [itemIds, serviceIds, allItems, allServices] = await Promise.all([
+        PlanItems.listForPlan(planId),
+        PlanServices.listForPlan(planId),
+        makeEntityClient('items').list(),
+        makeEntityClient('services').list().catch(() => []),
+      ]);
+      return {
+        items: allItems.filter((i) => itemIds.includes(i.id)),
+        services: allServices.filter((s) => serviceIds.includes(s.id)),
+      };
+    },
   },
 };

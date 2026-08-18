@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Check, Crown, Sparkles, ShieldCheck } from "lucide-react";
+import { Check, Crown, Sparkles, ShieldCheck, AlertCircle } from "lucide-react";
 import { api } from "@/api/client";
 import { useAuth } from "@/lib/AuthContext";
 import Reveal from "@/components/home/Reveal";
+import PlanConfirmationModal from "@/components/PlanConfirmationModal";
 
 export default function Subscription() {
   const { isAuthenticated, isLoadingAuth, profile } = useAuth();
@@ -14,6 +15,8 @@ export default function Subscription() {
   const [membershipChecked, setMembershipChecked] = useState(false);
   const [subscribingId, setSubscribingId] = useState(null);
   const [justSubscribed, setJustSubscribed] = useState(null);
+  const [error, setError] = useState("");
+  const [confirmation, setConfirmation] = useState(null); // { plan, items, services }
 
   useEffect(() => {
     api.entities.SubscriptionPlan.list("price").then(setPlans).catch(() => {});
@@ -28,6 +31,22 @@ export default function Subscription() {
       .finally(() => setMembershipChecked(true));
   }, [isAuthenticated, isLoadingAuth, profile]);
 
+  const createFreshMembership = async (plan) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const end = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    return api.entities.Member.create({
+      plan_id: plan.id,
+      plan_name: plan.name,
+      full_name: profile.full_name || "Member",
+      phone: "",
+      status: "active",
+      start_date: today,
+      end_date: end,
+      bookings_allowed: plan.bookings_per_month,
+      items_allowed: plan.eligible_items,
+    });
+  };
+
   const subscribe = async (plan) => {
     if (isLoadingAuth) return;
     if (!isAuthenticated) {
@@ -35,24 +54,28 @@ export default function Subscription() {
       return;
     }
     setSubscribingId(plan.id);
+    setError("");
     try {
-      const today = new Date().toISOString().slice(0, 10);
-      const end = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-      const member = await api.entities.Member.create({
-        plan_id: plan.id,
-        plan_name: plan.name,
-        full_name: profile.full_name || "Member",
-        phone: "",
-        status: "active",
-        start_date: today,
-        end_date: end,
-        bookings_allowed: plan.bookings_per_month,
-        items_allowed: plan.eligible_items,
-      });
+      let member;
+      if (myMembership) {
+        // Already a member — switch their existing row to the new plan
+        // instead of inserting a second one. Falls back to a fresh insert
+        // if the existing row predates account linking and can't be found
+        // by the RPC (auth.uid()-scoped update matches zero rows).
+        try {
+          member = await api.membership.upgrade(plan.id);
+        } catch {
+          member = await createFreshMembership(plan);
+        }
+      } else {
+        member = await createFreshMembership(plan);
+      }
       setMyMembership(member);
       setJustSubscribed(plan.name);
-    } catch {
-      // leave subscribingId cleared below; card will just show Subscribe Now again
+      const included = await api.membership.getIncluded(plan.id).catch(() => ({ items: [], services: [] }));
+      setConfirmation({ plan, items: included.items, services: included.services });
+    } catch (err) {
+      setError(err?.message || "Something went wrong — please try again.");
     } finally {
       setSubscribingId(null);
     }
@@ -89,6 +112,14 @@ export default function Subscription() {
         </div>
       </section>
 
+      {error && (
+        <section className="mx-auto max-w-3xl px-4 sm:px-6 -mt-4 mb-4">
+          <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 flex items-center gap-3 text-rose-700 text-sm">
+            <AlertCircle className="h-4 w-4 shrink-0" /> {error}
+          </div>
+        </section>
+      )}
+
       {(justSubscribed || myMembership) && (
         <section className="mx-auto max-w-3xl px-4 sm:px-6 -mt-4 mb-4">
           <div className="rounded-2xl bg-white p-5 shadow-sm border border-border/60 flex items-center gap-4">
@@ -114,6 +145,7 @@ export default function Subscription() {
               <PlanCard
                 plan={plan}
                 isCurrent={myMembership?.plan_id === plan.id}
+                isUpgrade={!!myMembership && myMembership.plan_id !== plan.id}
                 submitting={subscribingId === plan.id}
                 onSubscribe={() => subscribe(plan)}
               />
@@ -121,11 +153,20 @@ export default function Subscription() {
           ))}
         </div>
       </section>
+
+      {confirmation && (
+        <PlanConfirmationModal
+          plan={confirmation.plan}
+          items={confirmation.items}
+          services={confirmation.services}
+          onClose={() => setConfirmation(null)}
+        />
+      )}
     </div>
   );
 }
 
-function PlanCard({ plan, isCurrent, submitting, onSubscribe }) {
+function PlanCard({ plan, isCurrent, isUpgrade, submitting, onSubscribe }) {
   const featured = plan.popular;
 
   return (
@@ -186,9 +227,9 @@ function PlanCard({ plan, isCurrent, submitting, onSubscribe }) {
             }
             style={featured ? { color: "hsl(var(--navy))" } : { background: "hsl(var(--navy))" }}
           >
-            {submitting ? "Subscribing…" : (
+            {submitting ? (isUpgrade ? "Upgrading…" : "Subscribing…") : (
               <span className="inline-flex items-center justify-center gap-2">
-                <Sparkles className="h-4 w-4" /> Subscribe Now
+                <Sparkles className="h-4 w-4" /> {isUpgrade ? "Upgrade to This Plan" : "Subscribe Now"}
               </span>
             )}
           </button>
