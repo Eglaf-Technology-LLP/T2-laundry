@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ClipboardList, Crown, Truck, Banknote, TrendingUp, ArrowRight } from "lucide-react";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { api } from "@/api/client";
 
 const STAGES = ["pending", "picked_up", "in_facility", "quality_check", "out_for_delivery", "delivered"];
@@ -37,12 +37,22 @@ export default function AdminDashboard() {
   const maxCat = Math.max(1, ...Object.values(catRevenue));
   const categories = Object.keys(catRevenue).sort((a, b) => catRevenue[b] - catRevenue[a]);
 
-  // weekly chart
-  const chartData = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d, i) => ({
-    day: d,
-    orders: orders.length ? Math.round(orders.length / 6 * (1 + Math.sin(i * 1.3)) * 2) : 0,
-    revenue: orders.length ? Math.round(orders.length / 6 * (1 + Math.cos(i * 1.1)) * 28) : 0,
-  }));
+  // weekly chart — real counts/revenue per calendar day from actual orders,
+  // not a simulated curve.
+  const today = new Date();
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - (6 - i));
+    return d;
+  });
+  const chartData = last7Days.map((d) => {
+    const dayOrders = orders.filter((o) => o.created_date && new Date(o.created_date).toDateString() === d.toDateString());
+    return {
+      day: `${d.toLocaleDateString(undefined, { weekday: "short" })} ${d.getDate()}`,
+      orders: dayOrders.length,
+      revenue: dayOrders.reduce((s, o) => s + (o.total || 0), 0),
+    };
+  });
 
   const stats = [
     { label: "Total Orders", value: orders.length, icon: ClipboardList, tint: "text-blue-600 bg-blue-50" },
@@ -81,10 +91,15 @@ export default function AdminDashboard() {
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eef2f7" />
                 <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
-                <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
+                {/* Separate axes: order counts (small integers) and revenue (QAR
+                    amounts) live on very different scales — sharing one axis made
+                    the order-count bars an invisible sliver next to revenue. */}
+                <YAxis yAxisId="orders" allowDecimals={false} tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
+                <YAxis yAxisId="revenue" orientation="right" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
                 <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 13 }} cursor={{ fill: "#f8fafc" }} />
-                <Bar dataKey="orders" radius={[6, 6, 0, 0]} fill="#0E2346" barSize={18} />
-                <Bar dataKey="revenue" radius={[6, 6, 0, 0]} fill="#D4AF37" barSize={18} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar yAxisId="orders" dataKey="orders" name="Orders" radius={[6, 6, 0, 0]} fill="#0E2346" barSize={18} />
+                <Bar yAxisId="revenue" dataKey="revenue" name="Revenue (QAR)" radius={[6, 6, 0, 0]} fill="#D4AF37" barSize={18} />
               </BarChart>
             </ResponsiveContainer>
           </div>
