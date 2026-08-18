@@ -43,6 +43,8 @@ export default function OrderCart({ lines, items, planState, onQty, onRemove, on
   const planSavings = total - billedTotal;
   const count = lines.reduce((s, l) => s + l.quantity, 0);
   const membership = planState?.membership;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isPastDate = form.pickup_date && form.pickup_date < todayStr;
 
   useEffect(() => {
     if (!profile) return;
@@ -92,7 +94,7 @@ export default function OrderCart({ lines, items, planState, onQty, onRemove, on
   };
 
   const submit = async () => {
-    if (!form.customer_name || !form.customer_phone) return;
+    if (!form.customer_name || !form.customer_phone || isPastDate) return;
     setSubmitting(true);
     try {
       const orderItems = lines.map((l) => ({
@@ -246,8 +248,15 @@ export default function OrderCart({ lines, items, planState, onQty, onRemove, on
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <label className="flex flex-col gap-1">
-                          <span className="text-xs text-foreground/50 flex items-center gap-1"><Calendar className="h-3 w-3" /> Date</span>
-                          <input type="date" value={form.pickup_date} onChange={(e) => update("pickup_date", e.target.value)} className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm" />
+                          <span className="text-xs text-foreground/50 flex items-center gap-1"><Calendar className="h-3 w-3" /> Delivery Date</span>
+                          <input
+                            type="date"
+                            min={todayStr}
+                            value={form.pickup_date}
+                            onChange={(e) => update("pickup_date", e.target.value)}
+                            className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm"
+                          />
+                          {isPastDate && <span className="text-[11px] text-destructive">Pick today or a future date.</span>}
                         </label>
                         <label className="flex flex-col gap-1">
                           <span className="text-xs text-foreground/50 flex items-center gap-1"><Clock className="h-3 w-3" /> Slot</span>
@@ -317,7 +326,7 @@ export default function OrderCart({ lines, items, planState, onQty, onRemove, on
                   </div>
                   <button
                     onClick={submit}
-                    disabled={submitting || !form.customer_name || !form.customer_phone}
+                    disabled={submitting || !form.customer_name || !form.customer_phone || isPastDate}
                     className="w-full rounded-xl bg-[hsl(var(--navy))] py-3.5 text-sm font-semibold text-white disabled:opacity-50 transition-transform hover:scale-[1.02]"
                   >
                     {submitting ? "Placing order…" : `Confirm Order · ${billedTotal} QAR`}
