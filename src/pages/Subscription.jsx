@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Check, Crown, Sparkles, ShieldCheck } from "lucide-react";
 import { api } from "@/api/client";
 import { useAuth } from "@/lib/AuthContext";
@@ -8,8 +8,10 @@ import Reveal from "@/components/home/Reveal";
 export default function Subscription() {
   const { isAuthenticated, isLoadingAuth, profile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [plans, setPlans] = useState([]);
   const [myMembership, setMyMembership] = useState(null);
+  const [membershipChecked, setMembershipChecked] = useState(false);
   const [subscribingId, setSubscribingId] = useState(null);
   const [justSubscribed, setJustSubscribed] = useState(null);
 
@@ -18,11 +20,13 @@ export default function Subscription() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated || !profile) return;
+    if (isLoadingAuth) return;
+    if (!isAuthenticated || !profile) { setMembershipChecked(true); return; }
     api.entities.Member.filter({ user_id: profile.id })
       .then((rows) => setMyMembership(rows[0] || null))
-      .catch(() => {});
-  }, [isAuthenticated, profile]);
+      .catch(() => {})
+      .finally(() => setMembershipChecked(true));
+  }, [isAuthenticated, isLoadingAuth, profile]);
 
   const subscribe = async (plan) => {
     if (isLoadingAuth) return;
@@ -53,6 +57,20 @@ export default function Subscription() {
       setSubscribingId(null);
     }
   };
+
+  // Completes the purchase that was interrupted by the signup/login detour:
+  // Subscribe Now -> /signup?...&plan=<id> -> back here still carrying ?plan=.
+  // Without this, the plan choice was silently dropped and nothing was ever
+  // actually subscribed — the user had to notice and click Subscribe again.
+  useEffect(() => {
+    const pendingPlanId = searchParams.get("plan");
+    if (!pendingPlanId || !membershipChecked || !isAuthenticated || !plans.length) return;
+    setSearchParams((p) => { p.delete("plan"); return p; }, { replace: true });
+    if (myMembership) return; // already subscribed to something, don't double up
+    const plan = plans.find((p) => p.id === pendingPlanId);
+    if (plan) subscribe(plan);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, membershipChecked, isAuthenticated, plans, myMembership]);
 
   return (
     <div className="min-h-screen">

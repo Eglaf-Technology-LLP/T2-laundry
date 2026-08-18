@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Lock } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import { nextDestination } from "@/lib/utils";
 
 export default function Login() {
   const { login } = useAuth();
@@ -18,8 +19,7 @@ export default function Login() {
     setSubmitting(true);
     try {
       await login(email, password);
-      const next = searchParams.get("next") || "/subscription";
-      navigate(next, { replace: true });
+      navigate(nextDestination(searchParams), { replace: true });
     } catch {
       setError("Invalid email or password.");
     } finally {

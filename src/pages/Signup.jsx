@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { UserPlus, MailCheck } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import { nextDestination } from "@/lib/utils";
 
 export default function Signup() {
   const { signup } = useAuth();
@@ -21,8 +22,7 @@ export default function Signup() {
     try {
       const loggedIn = await signup(email, password, fullName);
       if (loggedIn) {
-        const next = searchParams.get("next") || "/subscription";
-        navigate(next, { replace: true });
+        navigate(nextDestination(searchParams), { replace: true });
       } else {
         setNeedsEmailConfirm(true);
       }
