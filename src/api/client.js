@@ -76,20 +76,28 @@ const Member = {
   ...baseMember,
   // Both public signup (Subscription.jsx) and the admin "add member" form call
   // this. Table has no public INSERT policy, so both go through the same RPC.
+  //
+  // create_member has no default value on any of its 12 params, and
+  // supabase-js drops `undefined` keys entirely when it serializes the RPC
+  // body — so a caller that omits a field doesn't send it as null, it sends
+  // a shorter argument list, and PostgREST fails with an opaque "could not
+  // find the function ... in the schema cache" instead of a real error.
+  // Coalescing to null here (which the function then defaults via coalesce())
+  // keeps every call well-formed regardless of what the caller passed.
   async create(body) {
     const { data, error } = await supabase.rpc('create_member', {
       p_full_name: body.full_name,
-      p_email: body.email || null,
-      p_phone: body.phone,
-      p_plan_id: body.plan_id || null,
-      p_plan_name: body.plan_name,
-      p_status: body.status,
-      p_start_date: body.start_date,
-      p_end_date: body.end_date,
-      p_bookings_used: body.bookings_used,
-      p_bookings_allowed: body.bookings_allowed,
-      p_items_used: body.items_used,
-      p_items_allowed: body.items_allowed,
+      p_email: body.email ?? null,
+      p_phone: body.phone ?? null,
+      p_plan_id: body.plan_id ?? null,
+      p_plan_name: body.plan_name ?? null,
+      p_status: body.status ?? null,
+      p_start_date: body.start_date ?? null,
+      p_end_date: body.end_date ?? null,
+      p_bookings_used: body.bookings_used ?? null,
+      p_bookings_allowed: body.bookings_allowed ?? null,
+      p_items_used: body.items_used ?? null,
+      p_items_allowed: body.items_allowed ?? null,
     });
     if (error) throw error;
     return data;

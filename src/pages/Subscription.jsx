@@ -42,7 +42,9 @@ export default function Subscription() {
       status: "active",
       start_date: today,
       end_date: end,
+      bookings_used: 0,
       bookings_allowed: plan.bookings_per_month,
+      items_used: 0,
       items_allowed: plan.eligible_items,
     });
   };
