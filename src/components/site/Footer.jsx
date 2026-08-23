@@ -41,8 +41,8 @@ export default function Footer() {
           <div>
             <h4 className="font-mono-label text-[hsl(var(--gold-light))] text-xs mb-4">Contact</h4>
             <ul className="space-y-3 text-sm text-white/70">
-              <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-[hsl(var(--gold-light))]" /> +974 4000 0000</li>
-              <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-[hsl(var(--gold-light))]" /> care@t2laundry.com</li>
+              <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-[hsl(var(--gold-light))]" /> <a href="tel:+97474790121" className="hover:text-white">+974 7479 0121</a></li>
+              <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-[hsl(var(--gold-light))]" /> <a href="mailto:info@t2smart.com" className="hover:text-white">info@t2smart.com</a></li>
               <li className="flex items-start gap-2"><MapPin className="h-4 w-4 text-[hsl(var(--gold-light))] mt-0.5" /> Doha, Qatar &middot; Serving the GCC</li>
             </ul>
             <Link to="/subscription" className="mt-5 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-[hsl(var(--navy))] shimmer-gold" style={{ background: "linear-gradient(135deg, #A68336, #E5C578)" }}>
