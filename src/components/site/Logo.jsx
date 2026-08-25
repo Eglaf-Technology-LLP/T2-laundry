@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import LOGO_URL from "@/assets/logo.jpg";
+import LOGO_URL from "@/assets/logo.png";
 
 export default function Logo({ className, variant = "full", size = "md" }) {
   const heights = { sm: "h-9", md: "h-12", lg: "h-16" };

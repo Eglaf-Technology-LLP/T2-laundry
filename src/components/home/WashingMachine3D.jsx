@@ -1,7 +1,7 @@
 import React, { Suspense, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { RoundedBox, Float, ContactShadows, MeshDistortMaterial, useTexture } from "@react-three/drei";
-import logoUrl from "@/assets/logo.jpg";
+import logoUrl from "@/assets/logo.png";
 
 const NAVY = "#0E2346";
 const GOLD = "#D4AF37";
@@ -17,10 +17,11 @@ function LogoPlate({ position, rotationY, size = 0.85 }) {
         <planeGeometry args={[size + 0.08, size + 0.08]} />
         <meshStandardMaterial color={GOLD} metalness={0.75} roughness={0.3} />
       </mesh>
-      {/* Logo */}
+      {/* Logo — transparent so the gold bezel behind shows through the
+          cut-out parts of the mark instead of rendering them as opaque. */}
       <mesh position={[0, 0, 0.012]}>
         <planeGeometry args={[size, size]} />
-        <meshBasicMaterial map={texture} toneMapped={false} />
+        <meshBasicMaterial map={texture} transparent toneMapped={false} />
       </mesh>
     </group>
   );
