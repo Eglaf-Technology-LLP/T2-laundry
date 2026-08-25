@@ -12,14 +12,9 @@ function LogoPlate({ position, rotationY, size = 0.85 }) {
   const texture = useTexture(logoUrl);
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      {/* Gold bezel */}
-      <mesh>
-        <planeGeometry args={[size + 0.08, size + 0.08]} />
-        <meshStandardMaterial color={GOLD} metalness={0.75} roughness={0.3} />
-      </mesh>
-      {/* Logo — transparent so the gold bezel behind shows through the
-          cut-out parts of the mark instead of rendering them as opaque. */}
-      <mesh position={[0, 0, 0.012]}>
+      {/* No backing plate — transparent, so the cabinet's own surface color
+          shows through the mark's cut-out regions instead of a colored plate. */}
+      <mesh position={[0, 0, 0.01]}>
         <planeGeometry args={[size, size]} />
         <meshBasicMaterial map={texture} transparent toneMapped={false} />
       </mesh>
