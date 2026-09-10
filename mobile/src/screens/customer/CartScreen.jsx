@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, Pressable, Platform } from 'react-native';
 import { Text, Button, IconButton, Menu } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppTextInput from '../../components/AppTextInput';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { api } from '../../api/client';
@@ -54,6 +55,7 @@ function CartLines({ splitLines, changeQty, removeLine }) {
 }
 
 export default function CartScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { isAuthenticated, isLoadingAuth, profile } = useAuth();
   const { lines, planState, changeQty, removeLine, clear } = useCart();
   const [placed, setPlaced] = useState(null);
@@ -191,7 +193,7 @@ export default function CartScreen({ navigation }) {
   return (
     <KeyboardAwareScrollView
       style={styles.flex}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={{ ...styles.content, paddingBottom: 24 + insets.bottom }}
       keyboardShouldPersistTaps="handled"
       enableOnAndroid
       extraScrollHeight={20}
@@ -259,7 +261,7 @@ export default function CartScreen({ navigation }) {
                 onDismiss={() => setAddrMenuOpen(false)}
                 anchor={
                   <Pressable onPress={() => setAddrMenuOpen(true)}>
-                    <AppTextInput label="Address" value={form.address} editable={false} multiline mode="outlined" style={styles.input} />
+                    <AppTextInput label="Address" value={form.address} editable={false} multiline numberOfLines={2} mode="outlined" style={styles.input} />
                   </Pressable>
                 }>
                 {addresses.map((a) => (
@@ -270,8 +272,8 @@ export default function CartScreen({ navigation }) {
             )}
             {(addingAddress || addresses.length === 0) && (
               <View style={styles.dashedBox}>
-                <AppTextInput placeholder="Label (e.g. Home, Office)" value={newAddress.label} onChangeText={(t) => setNewAddress((f) => ({ ...f, label: t }))} mode="outlined" style={styles.input} />
-                <AppTextInput placeholder="Full address" value={newAddress.address_text} onChangeText={(t) => setNewAddress((f) => ({ ...f, address_text: t }))} multiline numberOfLines={2} mode="outlined" style={styles.input} />
+                <AppTextInput label="Label (e.g. Home, Office)" value={newAddress.label} onChangeText={(t) => setNewAddress((f) => ({ ...f, label: t }))} mode="outlined" style={styles.input} />
+                <AppTextInput label="Full address" value={newAddress.address_text} onChangeText={(t) => setNewAddress((f) => ({ ...f, address_text: t }))} multiline numberOfLines={2} mode="outlined" style={styles.input} />
                 <View style={styles.rowGap}>
                   <Button mode="contained" onPress={saveNewAddress} style={{ flex: 1 }}>Save & use</Button>
                   {addresses.length > 0 && <Button mode="outlined" onPress={() => setAddingAddress(false)}>Cancel</Button>}
@@ -280,7 +282,7 @@ export default function CartScreen({ navigation }) {
             )}
           </View>
         )}
-        <AppTextInput placeholder="Notes (optional)" value={form.notes} onChangeText={(t) => update('notes', t)} mode="outlined" style={styles.input} />
+        <AppTextInput label="Notes (optional)" value={form.notes} onChangeText={(t) => update('notes', t)} multiline numberOfLines={2} mode="outlined" style={styles.input} />
       </View>
 
       <View style={styles.footer}>

@@ -72,7 +72,7 @@ export default function AdminServicesScreen() {
         ListEmptyComponent={<Text style={styles.emptyText}>No services yet.</Text>}
       />
 
-      <FAB icon="plus" style={styles.fab} onPress={openAdd} label="Add Service" />
+      <FAB icon="plus" color="#fff" style={styles.fab} onPress={openAdd} label="Add Service" />
 
       <Portal>
         <Modal visible={editing !== null} onDismiss={() => setEditing(null)} contentContainerStyle={styles.modal}>

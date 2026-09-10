@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, FlatList, Pressable } from 'react-native';
 import { Text, Chip, Badge } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
@@ -7,9 +7,18 @@ import { useAuth } from '../../lib/AuthContext';
 import { useCart } from '../../lib/CartContext';
 import ItemCard from '../../components/ItemCard';
 import AppTextInput from '../../components/AppTextInput';
+import FilterScrollRow from '../../components/FilterScrollRow';
 
 const NAVY = '#0E2346';
 const GOLD = '#B08D2C';
+
+const CategoryChip = memo(function CategoryChip({ name, active, onSelect }) {
+  return (
+    <Chip selected={active} showSelectedCheck={false} onPress={() => onSelect(name)} style={active ? styles.chipActive : styles.chip} textStyle={active ? { color: '#fff' } : undefined}>
+      {name}
+    </Chip>
+  );
+});
 
 export default function ServicesScreen({ navigation }) {
   const { isAuthenticated, isLoadingAuth } = useAuth();
@@ -49,6 +58,53 @@ export default function ServicesScreen({ navigation }) {
   const count = lines.reduce((s, l) => s + l.quantity, 0);
   const billedTotal = lines.reduce((s, l) => s + l.price * l.quantity, 0);
 
+  const renderItem = useCallback(
+    ({ item }) => (
+      <ItemCard
+        item={item}
+        inPlan={planState.planItemIds.includes(item.id)}
+        lines={lines.filter((l) => l.id === item.id)}
+        onSelectService={addLine}
+        onQty={changeQty}
+      />
+    ),
+    [planState.planItemIds, lines, addLine, changeQty]
+  );
+
+  const renderCategory = useCallback(
+    ({ item: c }) => <CategoryChip name={c.name} active={activeCat === c.name} onSelect={setActiveCat} />,
+    [activeCat]
+  );
+
+  // Otherwise this rebuilds (and the nested category FlatList re-renders
+  // every chip) on every ServicesScreen render — including ones caused by
+  // cart quantity changes elsewhere, which have nothing to do with the
+  // search box or category list — making category taps feel sluggish.
+  const listHeader = useMemo(
+    () => (
+      <View style={styles.header}>
+        <Text style={styles.subtitle}>Choose items, pick a service, and build your order</Text>
+
+        <AppTextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search Kurta, Thobe, Bedsheet…"
+          left={<AppTextInput.Icon icon="magnify" />}
+          style={styles.search}
+          returnKeyType="search"
+        />
+
+        <FilterScrollRow
+          data={cats}
+          keyExtractor={(c) => c.slug}
+          contentContainerStyle={styles.catList}
+          renderItem={renderCategory}
+        />
+      </View>
+    ),
+    [query, cats, renderCategory]
+  );
+
   return (
     <View style={styles.flex}>
       <FlatList
@@ -58,46 +114,8 @@ export default function ServicesScreen({ navigation }) {
         columnWrapperStyle={styles.columnWrapper}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.listContent}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.subtitle}>Choose items, pick a service, and build your order</Text>
-
-            <AppTextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search Kurta, Thobe, Bedsheet…"
-              left={<AppTextInput.Icon icon="magnify" />}
-              style={styles.search}
-              returnKeyType="search"
-            />
-
-            <FlatList
-              data={cats}
-              keyExtractor={(c) => c.slug}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.catList}
-              renderItem={({ item: c }) => (
-                <Chip
-                  selected={activeCat === c.name}
-                  onPress={() => setActiveCat(c.name)}
-                  style={activeCat === c.name ? styles.chipActive : styles.chip}
-                  textStyle={activeCat === c.name ? { color: '#fff' } : undefined}>
-                  {c.name}
-                </Chip>
-              )}
-            />
-          </View>
-        }
-        renderItem={({ item }) => (
-          <ItemCard
-            item={item}
-            inPlan={planState.planItemIds.includes(item.id)}
-            lines={lines.filter((l) => l.id === item.id)}
-            onSelectService={addLine}
-            onQty={changeQty}
-          />
-        )}
+        ListHeaderComponent={listHeader}
+        renderItem={renderItem}
         ListEmptyComponent={<Text style={styles.emptyText}>No items found.</Text>}
       />
 

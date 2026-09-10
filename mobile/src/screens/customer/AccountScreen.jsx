@@ -178,7 +178,7 @@ export default function AccountScreen({ navigation }) {
                 value={newAddress.address_text}
                 onChangeText={(t) => setNewAddress((f) => ({ ...f, address_text: t }))}
                 multiline
-                numberOfLines={3}
+                numberOfLines={2}
                 left={<AppTextInput.Icon icon="map-marker-outline" />}
                 style={styles.input}
               />
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   emptyText: { color: '#94a3b8', fontSize: 13, textAlign: 'center', paddingVertical: 16 },
   dashedBox: { borderWidth: 1, borderStyle: 'dashed', borderColor: '#cbd5e1', borderRadius: 12, padding: 12, marginTop: 12 },
   addressRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, marginTop: 8 },
-  defaultChip: { backgroundColor: '#d1fae5', height: 22 },
+  defaultChip: { backgroundColor: '#d1fae5', justifyContent: 'center' },
   barTrack: { height: 8, borderRadius: 4, backgroundColor: '#e2e8f0', overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 4, backgroundColor: GOLD },
   planRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, padding: 12, marginTop: 8 },

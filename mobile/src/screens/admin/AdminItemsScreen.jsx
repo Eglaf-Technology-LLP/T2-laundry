@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, FlatList, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { Text, Chip, Portal, Modal, Button, IconButton, Checkbox, ActivityIndicator, FAB } from 'react-native-paper';
 import AppTextInput from '../../components/AppTextInput';
+import FilterScrollRow from '../../components/FilterScrollRow';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../../api/client';
 
@@ -82,15 +83,13 @@ export default function AdminItemsScreen() {
       <View style={styles.filterBar}>
         <AppTextInput value={query} onChangeText={setQuery} placeholder="Search items…" mode="outlined" dense style={styles.search} left={<AppTextInput.Icon icon="magnify" />} />
         <View style={styles.catRow}>
-          <FlatList
+          <FilterScrollRow
             data={['All', ...cats.map((c) => c.name)]}
-            horizontal
             keyExtractor={(c) => c}
-            showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ gap: 6 }}
             style={{ flex: 1 }}
             renderItem={({ item: c }) => (
-              <Chip selected={filter === c} onPress={() => setFilter(c)} style={filter === c ? styles.chipActive : styles.chip} textStyle={filter === c ? { color: '#fff' } : undefined}>{c}</Chip>
+              <Chip selected={filter === c} showSelectedCheck={false} onPress={() => setFilter(c)} style={filter === c ? styles.chipActive : styles.chip} textStyle={filter === c ? { color: '#fff' } : undefined}>{c}</Chip>
             )}
           />
           <IconButton icon="tag-multiple-outline" mode="outlined" size={18} onPress={() => setShowCategories(true)} />
@@ -131,7 +130,7 @@ export default function AdminItemsScreen() {
         ListEmptyComponent={<Text style={styles.emptyText}>No items.</Text>}
       />
 
-      <FAB icon="plus" style={styles.fab} onPress={openAddItem} label="Add Item" />
+      <FAB icon="plus" color="#fff" style={styles.fab} onPress={openAddItem} label="Add Item" />
 
       <Portal>
         <Modal visible={editingItem !== null} onDismiss={() => setEditingItem(null)} contentContainerStyle={styles.modal}>

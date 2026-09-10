@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useState } from 'react';
 
 const CartContext = createContext(null);
 
@@ -11,7 +11,11 @@ export function CartProvider({ children }) {
   const [lines, setLines] = useState([]);
   const [planState, setPlanState] = useState({ membership: null, planItemIds: [] });
 
-  const addLine = (item, serviceKey) => {
+  // useCallback so these keep a stable identity across cart mutations —
+  // ItemCard is memoized and relies on onSelectService/onQty not changing
+  // reference on every render, otherwise every visible card would re-render
+  // whenever any single item's quantity changes.
+  const addLine = useCallback((item, serviceKey) => {
     setLines((prev) => {
       const idx = prev.findIndex((l) => l.id === item.id && l.serviceKey === serviceKey);
       if (idx > -1) {
@@ -21,17 +25,17 @@ export function CartProvider({ children }) {
       }
       return [...prev, { id: item.id, name: item.name, category: item.category, serviceKey, serviceLabel: SERVICE_LABELS[serviceKey], price: item[serviceKey], quantity: 1 }];
     });
-  };
+  }, []);
 
-  const changeQty = (id, serviceKey, delta) => {
+  const changeQty = useCallback((id, serviceKey, delta) => {
     setLines((prev) => prev
       .map((l) => (l.id === id && l.serviceKey === serviceKey ? { ...l, quantity: Math.max(0, l.quantity + delta) } : l))
       .filter((l) => l.quantity > 0));
-  };
+  }, []);
 
-  const removeLine = (id, serviceKey) => setLines((prev) => prev.filter((l) => !(l.id === id && l.serviceKey === serviceKey)));
+  const removeLine = useCallback((id, serviceKey) => setLines((prev) => prev.filter((l) => !(l.id === id && l.serviceKey === serviceKey))), []);
 
-  const clear = () => setLines([]);
+  const clear = useCallback(() => setLines([]), []);
 
   return (
     <CartContext.Provider value={{ lines, planState, setPlanState, addLine, changeQty, removeLine, clear }}>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Text, Chip, IconButton } from 'react-native-paper';
 
@@ -12,7 +12,7 @@ const SERVICE_OPTIONS = [
 const NAVY = '#0E2346';
 const GOLD = '#D4AF37';
 
-export default function ItemCard({ item, inPlan, lines = [], onSelectService, onQty }) {
+function ItemCard({ item, inPlan, lines = [], onSelectService, onQty }) {
   const available = SERVICE_OPTIONS.filter((o) => (item[o.key] || 0) > 0);
   const lineFor = (key) => lines.find((l) => l.serviceKey === key);
   const total = lines.reduce((s, l) => s + l.price * l.quantity, 0);
@@ -78,6 +78,28 @@ export default function ItemCard({ item, inPlan, lines = [], onSelectService, on
   );
 }
 
+// react-navigation's FlatList re-creates `lines.filter(...)` for every card on
+// every cart mutation, so a shallow prop comparison would still re-render
+// every visible card whenever any single item's quantity changes — compare
+// the filtered lines by content instead of reference so only the card(s)
+// whose own quantity/services actually changed re-render.
+function linesEqual(a, b) {
+  if (a.length !== b.length) return false;
+  return a.every((l, i) => l.serviceKey === b[i].serviceKey && l.quantity === b[i].quantity);
+}
+
+function areEqual(prev, next) {
+  return (
+    prev.item === next.item &&
+    prev.inPlan === next.inPlan &&
+    prev.onSelectService === next.onSelectService &&
+    prev.onQty === next.onQty &&
+    linesEqual(prev.lines, next.lines)
+  );
+}
+
+export default memo(ItemCard, areEqual);
+
 const styles = StyleSheet.create({
   card: { flex: 1, backgroundColor: '#fff', borderRadius: 18, padding: 14, elevation: 1, position: 'relative' },
   popularBadge: { position: 'absolute', top: -8, right: 12, backgroundColor: GOLD, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, zIndex: 1 },
@@ -85,7 +107,7 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   name: { fontSize: 14, fontWeight: '700', color: NAVY, flex: 1 },
   category: { fontSize: 9, color: '#94a3b8', textTransform: 'uppercase' },
-  planChip: { alignSelf: 'flex-start', backgroundColor: '#d1fae5', marginTop: 6, height: 22 },
+  planChip: { alignSelf: 'flex-start', backgroundColor: '#d1fae5', marginTop: 6, justifyContent: 'center' },
   planChipText: { fontSize: 9, color: '#047857' },
   serviceList: { marginTop: 10, gap: 6 },
   serviceRow: {

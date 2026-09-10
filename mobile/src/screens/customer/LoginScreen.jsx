@@ -4,6 +4,7 @@ import { Text, Button, HelperText, Avatar } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AppTextInput from '../../components/AppTextInput';
 import { useAuth } from '../../lib/AuthContext';
+import { api } from '../../api/client';
 
 const NAVY = '#0E2346';
 
@@ -22,8 +23,16 @@ export default function LoginScreen({ navigation, route }) {
     setSubmitting(true);
     try {
       await login(email.trim(), password);
+      // An admin credential logging in here flips AuthContext's role, which
+      // makes RootNavigator swap the whole customer navigator (this screen
+      // included) for the admin one. Manually navigating on top of that — as
+      // the code below does for a normal customer login — races the swap:
+      // this screen can already be torn down by the time goBack()/replace()
+      // runs, so it does nothing or throws. Let the swap handle it instead.
+      const loggedInProfile = await api.auth.getProfile();
+      if (loggedInProfile?.role === 'admin') return;
       if (nextScreen) navigation.replace(nextScreen);
-      else navigation.goBack();
+      else if (navigation.canGoBack()) navigation.goBack();
     } catch {
       setError('Invalid email or password.');
     } finally {

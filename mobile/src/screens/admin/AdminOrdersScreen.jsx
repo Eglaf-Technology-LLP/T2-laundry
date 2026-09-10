@@ -1,11 +1,13 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, FlatList, StyleSheet, Pressable } from 'react-native';
 import { Text, Chip, Portal, Modal, Button, ActivityIndicator } from 'react-native-paper';
 import AppTextInput from '../../components/AppTextInput';
+import FilterScrollRow from '../../components/FilterScrollRow';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../../api/client';
 
 const STAGES = ['pending', 'picked_up', 'in_facility', 'quality_check', 'out_for_delivery', 'delivered'];
+const FILTERS = ['all', ...STAGES];
 const STAGE_LABELS = { pending: 'Order Placed', picked_up: 'Picked Up', in_facility: 'In Facility', quality_check: 'Quality Check', out_for_delivery: 'Out for Delivery', delivered: 'Delivered' };
 const NAVY = '#0E2346';
 const GOLD = '#B08D2C';
@@ -16,6 +18,7 @@ export default function AdminOrdersScreen() {
   const [filter, setFilter] = useState('all');
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
+  const filterListRef = useRef(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -23,6 +26,16 @@ export default function AdminOrdersScreen() {
   }, []);
 
   useFocusEffect(load);
+
+  // Tapping a stage near the end of the row otherwise leaves it (and its
+  // label) sitting past the visible edge — nothing scrolled it into view, so
+  // the only sign a filter is even active is a chip that's still off-screen.
+  useEffect(() => {
+    const idx = FILTERS.indexOf(filter);
+    if (idx > -1) {
+      filterListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.5 });
+    }
+  }, [filter]);
 
   const advance = async (o) => {
     const idx = STAGES.indexOf(o.status);
@@ -51,14 +64,18 @@ export default function AdminOrdersScreen() {
     <View style={styles.flex}>
       <View style={styles.filterBar}>
         <AppTextInput value={query} onChangeText={setQuery} placeholder="Search code or customer…" mode="outlined" dense style={styles.search} left={<AppTextInput.Icon icon="magnify" />} />
-        <FlatList
-          data={['all', ...STAGES]}
-          horizontal
+        <FilterScrollRow
+          ref={filterListRef}
+          data={FILTERS}
           keyExtractor={(s) => s}
-          showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 6, paddingVertical: 8 }}
           renderItem={({ item: s }) => (
-            <Chip selected={filter === s} onPress={() => setFilter(s)} style={filter === s ? styles.chipActive : styles.chip} textStyle={filter === s ? { color: '#fff' } : undefined}>
+            <Chip
+              selected={filter === s}
+              showSelectedCheck={false}
+              onPress={() => setFilter(s)}
+              style={filter === s ? styles.chipActive : styles.chip}
+              textStyle={filter === s ? { color: '#fff' } : undefined}>
               {s === 'all' ? 'All' : STAGE_LABELS[s] || s}
             </Chip>
           )}
