@@ -8,6 +8,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { api } from '../../api/client';
 import { useAuth } from '../../lib/AuthContext';
 import { useCart } from '../../lib/CartContext';
+import { goToTab } from '../../navigation/goToTab';
 import { EmptyState, IconTile, SurfaceCard, uiStyles } from '../../components/ui';
 import { colors, radius, shadow, spacing, type } from '../../theme/tokens';
 
@@ -175,11 +176,11 @@ export default function CartScreen({ navigation }) {
           )}
           <View style={styles.placedActions}>
             {!failed && (
-              <Button mode="outlined" icon="map-marker-path" style={[uiStyles.btn, styles.outlinedBtn]} contentStyle={uiStyles.btnContent} labelStyle={uiStyles.btnLabel} onPress={() => navigation.navigate('Track')}>
+              <Button mode="outlined" icon="map-marker-path" style={[uiStyles.btn, styles.outlinedBtn]} contentStyle={uiStyles.btnContent} labelStyle={uiStyles.btnLabel} onPress={() => goToTab(navigation, 'Track', { code: placed.code })}>
                 Track My Order
               </Button>
             )}
-            <Button mode="contained" style={uiStyles.btn} contentStyle={uiStyles.btnContent} labelStyle={uiStyles.btnLabel} onPress={() => { setPlaced(null); navigation.navigate('Services'); }}>
+            <Button mode="contained" style={uiStyles.btn} contentStyle={uiStyles.btnContent} labelStyle={uiStyles.btnLabel} onPress={() => { setPlaced(null); goToTab(navigation, 'Services'); }}>
               {failed ? 'Back to cart' : 'Place another order'}
             </Button>
           </View>
@@ -192,7 +193,7 @@ export default function CartScreen({ navigation }) {
     return (
       <View style={styles.centerScreen}>
         <EmptyState icon="basket-outline" title="Your cart is empty." message="Add items from our services to schedule a pickup.">
-          <Button mode="contained" icon="washing-machine" style={[uiStyles.btn, styles.emptyBtn]} contentStyle={uiStyles.btnContent} labelStyle={uiStyles.btnLabel} onPress={() => navigation.navigate('Services')}>
+          <Button mode="contained" icon="washing-machine" style={[uiStyles.btn, styles.emptyBtn]} contentStyle={uiStyles.btnContent} labelStyle={uiStyles.btnLabel} onPress={() => goToTab(navigation, 'Services')}>
             Browse services
           </Button>
         </EmptyState>

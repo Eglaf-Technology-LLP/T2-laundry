@@ -4,6 +4,7 @@ import { Button } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AppTextInput from '../../components/AppTextInput';
 import { useAuth, ADMIN_NOT_ALLOWED } from '../../lib/AuthContext';
+import { goToTab, TAB_NAMES } from '../../navigation/goToTab';
 import { AuthHeader, HERO_OVERLAP, ErrorBanner, SurfaceCard, uiStyles } from '../../components/ui';
 import { colors, spacing } from '../../theme/tokens';
 
@@ -29,7 +30,8 @@ export default function LoginScreen({ navigation, route, embedded, onShowSignup 
       // In the Account tab, going "back" would jump to another tab — the tab
       // re-renders as the account page on its own.
       if (embedded) return;
-      if (nextScreen) navigation.replace(nextScreen);
+      if (nextScreen && TAB_NAMES.includes(nextScreen)) goToTab(navigation, nextScreen);
+      else if (nextScreen) navigation.replace(nextScreen);
       else if (navigation.canGoBack()) navigation.goBack();
     } catch (e) {
       setError(e?.code === ADMIN_NOT_ALLOWED ? e.message : 'Invalid email or password.');

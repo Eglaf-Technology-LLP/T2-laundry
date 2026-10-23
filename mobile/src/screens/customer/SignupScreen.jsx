@@ -4,6 +4,7 @@ import { Button } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AppTextInput from '../../components/AppTextInput';
 import { useAuth } from '../../lib/AuthContext';
+import { goToTab, TAB_NAMES } from '../../navigation/goToTab';
 import { AuthHeader, HERO_OVERLAP, EmptyState, ErrorBanner, SurfaceCard, uiStyles } from '../../components/ui';
 import { colors, spacing } from '../../theme/tokens';
 
@@ -31,7 +32,10 @@ export default function SignupScreen({ navigation, route, embedded, onShowLogin 
       if (loggedIn) {
         // In the Account tab, the tab re-renders as the account page on its own.
         if (embedded) return;
-        if (nextScreen) navigation.replace(nextScreen, { plan: route.params?.plan });
+        // A tab (e.g. Subscription, resuming a subscribe) can't be a replace()
+        // target from this stack screen — pop back to the tabs instead.
+        if (nextScreen && TAB_NAMES.includes(nextScreen)) goToTab(navigation, nextScreen, { plan: route.params?.plan });
+        else if (nextScreen) navigation.replace(nextScreen, { plan: route.params?.plan });
         else navigation.goBack();
       } else {
         setNeedsEmailConfirm(true);

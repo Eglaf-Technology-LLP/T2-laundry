@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { Text, Button, ActivityIndicator, Icon } from 'react-native-paper';
 import AppTextInput from '../../components/AppTextInput';
@@ -15,19 +15,19 @@ const STAGES = [
   { key: 'delivered', label: 'Delivered' },
 ];
 
-export default function TrackOrderScreen() {
+export default function TrackOrderScreen({ navigation, route }) {
   const [code, setCode] = useState('');
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const track = async () => {
-    if (!code.trim()) return;
+  const track = async (value = code) => {
+    if (!value.trim()) return;
     setLoading(true);
     setError('');
     setOrder(null);
     try {
-      const res = await api.entities.Order.filter({ order_code: code.trim().toUpperCase() });
+      const res = await api.entities.Order.filter({ order_code: value.trim().toUpperCase() });
       if (res.length) setOrder(res[0]);
       else setError('No order found with that code.');
     } catch {
@@ -36,6 +36,17 @@ export default function TrackOrderScreen() {
       setLoading(false);
     }
   };
+
+  // "Track My Order" after checkout passes the new order's code — fill it in
+  // and look it up straight away, then clear the param so it isn't reused.
+  const handedCode = route?.params?.code;
+  useEffect(() => {
+    if (!handedCode) return;
+    setCode(handedCode);
+    track(handedCode);
+    navigation.setParams({ code: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handedCode]);
 
   const currentIndex = order ? STAGES.findIndex((s) => s.key === order.status) : -1;
 
@@ -53,13 +64,13 @@ export default function TrackOrderScreen() {
           placeholder="e.g. T2-AB12CD"
           style={styles.input}
           left={<AppTextInput.Icon icon="pound" />}
-          onSubmitEditing={track}
+          onSubmitEditing={() => track()}
           returnKeyType="search"
         />
         <Button
           mode="contained"
           icon="magnify"
-          onPress={track}
+          onPress={() => track()}
           loading={loading}
           disabled={loading || !code.trim()}
           style={uiStyles.btn}
