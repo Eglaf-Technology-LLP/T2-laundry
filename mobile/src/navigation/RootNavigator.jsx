@@ -26,7 +26,7 @@ export default function RootNavigator() {
   // role gives each side a fresh navigation state on login/logout.
   return (
     <NavigationContainer key={isAdmin ? 'admin' : 'customer'}>
-      {isAdmin ? <AdminNavigator /> : <CustomerNavigator />}}
+      {isAdmin ? <AdminNavigator /> : <CustomerNavigator />}
     </NavigationContainer>
   );
 }
