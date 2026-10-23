@@ -95,14 +95,16 @@ export default function ServicesScreen({ navigation }) {
     [activeCat, catCounts]
   );
 
-  // Otherwise this rebuilds (and the nested category FlatList re-renders
-  // every chip) on every ServicesScreen render — including ones caused by
-  // cart quantity changes elsewhere, which have nothing to do with the
-  // search box or category list — making category taps feel sluggish.
-  const listHeader = useMemo(
+  // The hero, search and category row stay pinned above the product grid —
+  // only the products scroll. Memoized because otherwise this rebuilds (and
+  // the nested category FlatList re-renders every chip) on every
+  // ServicesScreen render — including ones caused by cart quantity changes,
+  // which have nothing to do with the search box or category list — making
+  // category taps feel sluggish.
+  const fixedHeader = useMemo(
     () => (
       <View style={styles.header}>
-        <ScreenHero overlap icon="washing-machine" title="What needs care today?" subtitle="Choose items, pick a service, and build your order" />
+        <ScreenHero overlap icon="washing-machine" title="What needs care today?" subtitle="Pick items, choose a service, build your order" style={styles.hero} />
 
         <SearchBar value={query} onChangeText={setQuery} placeholder="Search Kurta, Thobe, Bedsheet…" style={styles.search} />
 
@@ -126,14 +128,15 @@ export default function ServicesScreen({ navigation }) {
 
   return (
     <View style={styles.flex}>
+      {fixedHeader}
       <FlatList
         data={filtered}
         keyExtractor={(it) => it.id}
         numColumns={2}
         columnWrapperStyle={styles.columnWrapper}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         contentContainerStyle={styles.listContent}
-        ListHeaderComponent={listHeader}
         renderItem={renderItem}
         ListEmptyComponent={
           loaded ? (
@@ -169,11 +172,14 @@ export default function ServicesScreen({ navigation }) {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
   grow: { flex: 1 },
-  listContent: { padding: spacing.lg, paddingBottom: 110, gap: spacing.md },
+  listContent: { padding: spacing.lg, paddingTop: spacing.md, paddingBottom: 110, gap: spacing.md },
   columnWrapper: { gap: spacing.md },
-  header: { marginBottom: 4 },
+  // Pinned above the grid. Padding matches ScreenHero's default bleed so the
+  // hero still runs edge to edge; the hairline marks where products scroll under.
+  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: 2, backgroundColor: colors.bg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderStrong, zIndex: 1 },
+  hero: { paddingTop: 2 },
   search: { marginTop: -HERO_OVERLAP },
-  filterHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: spacing.xl, marginBottom: 2 },
+  filterHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: spacing.lg, marginBottom: 2 },
   filterTitle: { ...type.h3 },
   resultText: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
   catList: { gap: spacing.sm, paddingVertical: spacing.sm, paddingHorizontal: 2 },
