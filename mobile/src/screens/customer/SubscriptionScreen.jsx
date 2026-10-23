@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../api/client';
 
-import { ErrorBanner, IconTile, ScreenHero, uiStyles } from '../../components/ui';
+import { ErrorBanner, IconTile, ScreenHero, HERO_OVERLAP, uiStyles } from '../../components/ui';
 import { colors, radius, shadow, spacing, type } from '../../theme/tokens';
 
 const PERKS = [
@@ -19,7 +19,11 @@ function PlanCard({ plan, isCurrent, isUpgrade, submitting, onSubscribe, onViewI
   return (
     <View style={[styles.planCard, featured && styles.planCardFeatured, isCurrent && !featured && styles.planCardCurrent]}>
       <View style={styles.planHead}>
-        <IconTile icon={featured ? 'crown' : 'crown-outline'} size={44} tone={featured ? 'gold' : 'navy'} />
+        <IconTile icon={featured ? 'crown' : 'crown-outline'} size={42} tone={featured ? 'gold' : 'navy'} />
+        <View style={styles.flex}>
+          <Text style={[styles.planName, featured && styles.textWhite]} numberOfLines={1}>{plan.name}</Text>
+          {!!plan.tagline && <Text style={[styles.planTagline, featured && styles.textWhiteDim]} numberOfLines={2}>{plan.tagline}</Text>}
+        </View>
         {featured && (
           <View style={styles.bestValue}>
             <Icon source="star" size={11} color={colors.navy} />
@@ -27,8 +31,6 @@ function PlanCard({ plan, isCurrent, isUpgrade, submitting, onSubscribe, onViewI
           </View>
         )}
       </View>
-      <Text style={[styles.planName, featured && styles.textWhite]}>{plan.name}</Text>
-      <Text style={[styles.planTagline, featured && styles.textWhiteDim]}>{plan.tagline}</Text>
       <View style={styles.priceRow}>
         <Text style={[styles.planPrice, featured && styles.gold]}>{plan.price}</Text>
         <Text style={[styles.planPeriod, featured && styles.textWhiteDim]}>QAR / {plan.period}</Text>
@@ -162,32 +164,29 @@ export default function SubscriptionScreen({ navigation, route }) {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={styles.container}>
-      <ScreenHero
-        eyebrow="Membership Plans"
-        title={'One membership.\nLimitless care.'}
-        subtitle="Free pickup & delivery, priority booking and real-time tracking on every tier."
-        icon="crown">
+      {/* Kept compact so the first plan card starts within the first screen;
+          the whole page scrolls (plan cards vary in length with their
+          feature lists, so pinning the hero would squeeze them). */}
+      <ScreenHero overlap eyebrow="Membership Plans" title="One membership. Limitless care." icon="crown">
         <View style={styles.perks}>
           {PERKS.map((p) => (
             <View key={p.label} style={styles.perk}>
-              <Icon source={p.icon} size={18} color={colors.cyan} />
+              <Icon source={p.icon} size={14} color={colors.cyan} />
               <Text style={styles.perkText}>{p.label}</Text>
             </View>
           ))}
         </View>
+        {(justSubscribed || myMembership) && (
+          <View style={styles.statusPill}>
+            <Icon source="check-decagram" size={16} color={colors.success} />
+            <Text style={styles.statusText} numberOfLines={2}>
+              You're on the {myMembership?.plan_name || justSubscribed} plan · {myMembership?.payment_status === 'paid' ? 'Payment confirmed.' : "Payment pending — we'll follow up to confirm billing."}
+            </Text>
+          </View>
+        )}
       </ScreenHero>
 
       <ErrorBanner message={error} style={styles.error} />
-
-      {(justSubscribed || myMembership) && (
-        <View style={styles.statusBanner}>
-          <IconTile icon="check-decagram" size={40} tone="green" />
-          <View style={styles.flex}>
-            <Text style={styles.navyBold}>You're on the {myMembership?.plan_name || justSubscribed} plan</Text>
-            <Text style={styles.dim}>{myMembership?.payment_status === 'paid' ? 'Payment confirmed.' : "Payment pending — we'll follow up to confirm billing."}</Text>
-          </View>
-        </View>
-      )}
 
       {!plans.length && <ActivityIndicator style={styles.loader} color={colors.navy} />}
 
@@ -233,30 +232,32 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   centerText: { textAlign: 'center' },
   container: { padding: spacing.lg, paddingBottom: 40 },
-  perks: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
-  perk: { flex: 1, alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: radius.md, paddingVertical: 10 },
+  perks: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: spacing.md },
+  perk: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 5 },
   perkText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  error: { marginBottom: spacing.md },
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.successSoft, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 8, marginTop: spacing.md },
+  statusText: { flex: 1, color: colors.success, fontSize: 12, fontWeight: '700' },
+  // The error (when shown) and the first plan card ride up over the hero's edge.
+  error: { marginTop: -HERO_OVERLAP, marginBottom: spacing.md + HERO_OVERLAP },
   loader: { marginTop: 40 },
-  statusBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, borderWidth: 1, borderColor: colors.successSoft, ...shadow.card },
   navyBold: { color: colors.navy, fontWeight: '700', fontSize: 14 },
   dim: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-  plansWrap: { marginTop: spacing.lg, gap: spacing.lg },
+  plansWrap: { marginTop: -HERO_OVERLAP, gap: spacing.lg },
   planCard: { borderRadius: radius.xxl, padding: spacing.xl, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, ...shadow.card },
   planCardFeatured: { backgroundColor: colors.navy, borderColor: colors.gold, borderWidth: 1.5, ...shadow.raised },
   planCardCurrent: { borderColor: colors.success, borderWidth: 1.5 },
-  planHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md },
-  bestValue: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.gold, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
-  bestValueText: { color: colors.navy, fontSize: 11, fontWeight: '800' },
-  planName: { fontSize: 22, fontWeight: '800', color: colors.navy },
-  planTagline: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
-  priceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginTop: spacing.lg },
-  planPrice: { fontSize: 36, lineHeight: 40, fontWeight: '800', color: colors.navy },
+  planHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  bestValue: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.gold, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' },
+  bestValueText: { color: colors.navy, fontSize: 10, fontWeight: '800' },
+  planName: { fontSize: 19, fontWeight: '800', color: colors.navy },
+  planTagline: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  priceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginTop: spacing.md },
+  planPrice: { fontSize: 32, lineHeight: 36, fontWeight: '800', color: colors.navy },
   gold: { color: colors.gold },
-  planPeriod: { fontSize: 12, color: colors.textFaint, marginBottom: 6, fontWeight: '600' },
-  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.lg },
+  planPeriod: { fontSize: 12, color: colors.textFaint, marginBottom: 5, fontWeight: '600' },
+  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
   dividerDark: { backgroundColor: 'rgba(255,255,255,0.12)' },
-  featuresList: { gap: 10, marginBottom: spacing.xl },
+  featuresList: { gap: 8, marginBottom: spacing.lg },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   check: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.cyanSoft, alignItems: 'center', justifyContent: 'center' },
   checkFeatured: { backgroundColor: colors.gold },
@@ -264,7 +265,7 @@ const styles = StyleSheet.create({
   currentBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.successSoft, borderRadius: radius.md, paddingVertical: 14 },
   currentBadgeFeatured: { backgroundColor: 'rgba(255,255,255,0.1)' },
   currentText: { color: colors.success, fontWeight: '800' },
-  viewItems: { marginTop: spacing.sm },
+  viewItems: { marginTop: 4 },
   textWhite: { color: '#fff' },
   textWhiteDim: { color: colors.onDarkMuted },
   textWhiteDim2: { color: 'rgba(255,255,255,0.88)' },

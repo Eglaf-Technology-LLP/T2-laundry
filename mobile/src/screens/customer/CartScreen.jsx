@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, ScrollView, StyleSheet, Pressable, Platform } from 'react-native';
+import { View, ScrollView, StyleSheet, Pressable, Platform, Keyboard } from 'react-native';
 import { Text, Button, IconButton, Icon } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -75,6 +75,15 @@ export default function CartScreen({ navigation }) {
   const [addingAddress, setAddingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({ label: '', address_text: '' });
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  // The pinned checkout bar steps aside while typing, so it doesn't sit on
+  // top of the keyboard eating the space the form needs.
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   const splitLines = useMemo(() => withPlanSplit(lines, planState), [lines, planState]);
   const total = lines.reduce((s, l) => s + l.price * l.quantity, 0);
@@ -216,168 +225,184 @@ export default function CartScreen({ navigation }) {
     );
   }
 
+  const canSubmit = !submitting && !!form.customer_name && !!form.customer_phone && !isPastDate;
+
   return (
-    <KeyboardAwareScrollView
-      style={uiStyles.screen}
-      contentContainerStyle={{ ...styles.content, paddingBottom: 24 + insets.bottom }}
-      keyboardShouldPersistTaps="handled"
-      enableOnAndroid
-      extraScrollHeight={20}
-      keyboardOpeningTime={0}>
-      <SurfaceCard>
-        <StepHeader icon="basket-outline" title="Your items" />
-        <CartLines splitLines={splitLines} changeQty={changeQty} removeLine={removeLine} />
-        {membership && (
-          <View style={styles.membershipNote}>
-            <Icon source="crown" size={14} color={colors.success} />
-            <Text style={styles.membershipText}>
-              {membership.bookings_used}/{membership.bookings_allowed} bookings · {membership.items_used}/{membership.items_allowed} items used this month
-            </Text>
-          </View>
-        )}
-      </SurfaceCard>
-
-      <SurfaceCard style={styles.section}>
-        <StepHeader icon="calendar-clock" title="Pickup schedule" />
-
-        <View style={styles.segment}>
-          {[
-            { key: 'pickup', label: 'Pickup', icon: 'truck-outline' },
-            { key: 'drop', label: 'Drop at shop', icon: 'storefront-outline' },
-          ].map((opt) => {
-            const active = form.pickup_type === opt.key;
-            return (
-              <Pressable
-                key={opt.key}
-                onPress={() => update('pickup_type', opt.key)}
-                style={[styles.segmentItem, active && styles.segmentItemActive]}
-                accessibilityRole="button"
-                accessibilityState={active ? { selected: true } : {}}>
-                <Icon source={opt.icon} size={18} color={active ? '#fff' : colors.textMuted} />
-                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{opt.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <Pressable onPress={() => setShowDatePicker(true)}>
-          <AppTextInput label="Delivery date" value={form.pickup_date} editable={false} placeholder="Select a date" left={<AppTextInput.Icon icon="calendar" />} style={styles.input} />
-        </Pressable>
-        {isPastDate && <Text style={styles.error}>Pick today or a future date.</Text>}
-        {showDatePicker && (
-          <DateTimePicker
-            value={form.pickup_date ? new Date(form.pickup_date) : new Date()}
-            mode="date"
-            minimumDate={new Date()}
-            onChange={(event, date) => {
-              setShowDatePicker(Platform.OS === 'ios');
-              if (date) update('pickup_date', date.toISOString().slice(0, 10));
-            }}
-          />
-        )}
-
-        <Text style={styles.fieldLabel}>Time slot</Text>
-        <View style={styles.slotGrid}>
-          {SLOTS.map((slot) => {
-            const active = form.pickup_slot === slot;
-            return (
-              <Pressable
-                key={slot}
-                onPress={() => update('pickup_slot', slot)}
-                style={[styles.slot, active && styles.slotActive]}
-                accessibilityRole="button"
-                accessibilityState={active ? { selected: true } : {}}>
-                <Text style={[styles.slotText, active && styles.slotTextActive]}>{slot}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </SurfaceCard>
-
-      <SurfaceCard style={styles.section}>
-        <StepHeader icon="account-outline" title="Contact details" />
-        <AppTextInput label="Full name" value={form.customer_name} onChangeText={(t) => update('customer_name', t)} left={<AppTextInput.Icon icon="account-outline" />} style={styles.input} />
-        <AppTextInput label="Phone number" value={form.customer_phone} onChangeText={(t) => update('customer_phone', t)} keyboardType="phone-pad" left={<AppTextInput.Icon icon="phone-outline" />} style={styles.input} />
-      </SurfaceCard>
-
-      {form.pickup_type === 'pickup' && (
-        <SurfaceCard style={styles.section}>
-          <StepHeader icon="map-marker-outline" title="Pickup address" />
-          {addresses.length > 0 && !addingAddress && (
-            <View style={styles.addrList}>
-              {addresses.map((a) => {
-                const active = form.address === a.address_text;
-                return (
-                  <Pressable
-                    key={a.id}
-                    onPress={() => selectAddress(a)}
-                    style={[styles.addrCard, active && styles.addrCardActive]}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: active }}>
-                    <Icon source={active ? 'radiobox-marked' : 'radiobox-blank'} size={20} color={active ? colors.cyanDark : colors.textFaint} />
-                    <View style={styles.flex}>
-                      <View style={styles.addrHead}>
-                        <Text style={styles.addrLabel}>{a.label || 'Address'}</Text>
-                        {a.is_default && <Text style={styles.defaultTag}>Default</Text>}
-                      </View>
-                      <Text style={styles.dim} numberOfLines={2}>{a.address_text}</Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-              <Button mode="text" icon="plus" textColor={colors.cyanDark} style={styles.addAddrBtn} onPress={() => setAddingAddress(true)}>
-                Add new address
-              </Button>
-            </View>
-          )}
-          {(addingAddress || addresses.length === 0) && (
-            <View style={styles.dashedBox}>
-              <AppTextInput label="Label (e.g. Home, Office)" value={newAddress.label} onChangeText={(t) => setNewAddress((f) => ({ ...f, label: t }))} left={<AppTextInput.Icon icon="tag-outline" />} style={styles.input} />
-              <AppTextInput label="Full address" value={newAddress.address_text} onChangeText={(t) => setNewAddress((f) => ({ ...f, address_text: t }))} multiline numberOfLines={2} left={<AppTextInput.Icon icon="map-marker-outline" />} style={styles.input} />
-              <View style={styles.rowGap}>
-                <Button mode="contained" onPress={saveNewAddress} style={[uiStyles.btn, styles.flex]}>Save & use</Button>
-                {addresses.length > 0 && <Button mode="outlined" style={uiStyles.btn} onPress={() => setAddingAddress(false)}>Cancel</Button>}
-              </View>
+    <View style={uiStyles.screen}>
+      <KeyboardAwareScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid
+        extraScrollHeight={20}
+        keyboardOpeningTime={0}>
+        <SurfaceCard>
+          <StepHeader icon="basket-outline" title="Your items" />
+          <CartLines splitLines={splitLines} changeQty={changeQty} removeLine={removeLine} />
+          {membership && (
+            <View style={styles.membershipNote}>
+              <Icon source="crown" size={14} color={colors.success} />
+              <Text style={styles.membershipText}>
+                {membership.bookings_used}/{membership.bookings_allowed} bookings · {membership.items_used}/{membership.items_allowed} items used this month
+              </Text>
             </View>
           )}
         </SurfaceCard>
-      )}
 
-      <SurfaceCard style={styles.section}>
-        <StepHeader icon="note-text-outline" title="Notes" />
-        <AppTextInput label="Notes (optional)" value={form.notes} onChangeText={(t) => update('notes', t)} multiline numberOfLines={2} style={styles.input} />
-      </SurfaceCard>
+        <SurfaceCard style={styles.section}>
+          <StepHeader icon="calendar-clock" title="Pickup schedule" />
 
-      <View style={styles.footer}>
-        <View style={styles.row}>
-          <Text style={styles.footerDim}>Subtotal</Text>
-          <Text style={styles.footerValue}>{total} QAR</Text>
-        </View>
-        {planSavings > 0 && (
-          <View style={styles.row}>
-            <Text style={styles.savingsText}>Plan savings</Text>
-            <Text style={styles.savingsText}>-{planSavings} QAR</Text>
+          <View style={styles.segment}>
+            {[
+              { key: 'pickup', label: 'Pickup', icon: 'truck-outline' },
+              { key: 'drop', label: 'Drop at shop', icon: 'storefront-outline' },
+            ].map((opt) => {
+              const active = form.pickup_type === opt.key;
+              return (
+                <Pressable
+                  key={opt.key}
+                  onPress={() => update('pickup_type', opt.key)}
+                  style={[styles.segmentItem, active && styles.segmentItemActive]}
+                  accessibilityRole="button"
+                  accessibilityState={active ? { selected: true } : {}}>
+                  <Icon source={opt.icon} size={18} color={active ? '#fff' : colors.textMuted} />
+                  <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{opt.label}</Text>
+                </Pressable>
+              );
+            })}
           </View>
+
+          <Pressable onPress={() => setShowDatePicker(true)}>
+            <AppTextInput label="Delivery date" value={form.pickup_date} editable={false} placeholder="Select a date" left={<AppTextInput.Icon icon="calendar" />} style={styles.input} />
+          </Pressable>
+          {isPastDate && <Text style={styles.error}>Pick today or a future date.</Text>}
+          {showDatePicker && (
+            <DateTimePicker
+              value={form.pickup_date ? new Date(form.pickup_date) : new Date()}
+              mode="date"
+              minimumDate={new Date()}
+              onChange={(event, date) => {
+                setShowDatePicker(Platform.OS === 'ios');
+                if (date) update('pickup_date', date.toISOString().slice(0, 10));
+              }}
+            />
+          )}
+
+          <Text style={styles.fieldLabel}>Time slot</Text>
+          <View style={styles.slotGrid}>
+            {SLOTS.map((slot) => {
+              const active = form.pickup_slot === slot;
+              return (
+                <Pressable
+                  key={slot}
+                  onPress={() => update('pickup_slot', slot)}
+                  style={[styles.slot, active && styles.slotActive]}
+                  accessibilityRole="button"
+                  accessibilityState={active ? { selected: true } : {}}>
+                  <Text style={[styles.slotText, active && styles.slotTextActive]}>{slot}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </SurfaceCard>
+
+        <SurfaceCard style={styles.section}>
+          <StepHeader icon="account-outline" title="Contact details" />
+          <AppTextInput label="Full name" value={form.customer_name} onChangeText={(t) => update('customer_name', t)} left={<AppTextInput.Icon icon="account-outline" />} style={styles.input} />
+          <AppTextInput label="Phone number" value={form.customer_phone} onChangeText={(t) => update('customer_phone', t)} keyboardType="phone-pad" left={<AppTextInput.Icon icon="phone-outline" />} style={styles.input} />
+        </SurfaceCard>
+
+        {form.pickup_type === 'pickup' && (
+          <SurfaceCard style={styles.section}>
+            <StepHeader icon="map-marker-outline" title="Pickup address" />
+            {addresses.length > 0 && !addingAddress && (
+              <View style={styles.addrList}>
+                {addresses.map((a) => {
+                  const active = form.address === a.address_text;
+                  return (
+                    <Pressable
+                      key={a.id}
+                      onPress={() => selectAddress(a)}
+                      style={[styles.addrCard, active && styles.addrCardActive]}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: active }}>
+                      <Icon source={active ? 'radiobox-marked' : 'radiobox-blank'} size={20} color={active ? colors.cyanDark : colors.textFaint} />
+                      <View style={styles.flex}>
+                        <View style={styles.addrHead}>
+                          <Text style={styles.addrLabel}>{a.label || 'Address'}</Text>
+                          {a.is_default && <Text style={styles.defaultTag}>Default</Text>}
+                        </View>
+                        <Text style={styles.dim} numberOfLines={2}>{a.address_text}</Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+                <Button mode="text" icon="plus" textColor={colors.cyanDark} style={styles.addAddrBtn} onPress={() => setAddingAddress(true)}>
+                  Add new address
+                </Button>
+              </View>
+            )}
+            {(addingAddress || addresses.length === 0) && (
+              <View style={styles.dashedBox}>
+                <AppTextInput label="Label (e.g. Home, Office)" value={newAddress.label} onChangeText={(t) => setNewAddress((f) => ({ ...f, label: t }))} left={<AppTextInput.Icon icon="tag-outline" />} style={styles.input} />
+                <AppTextInput label="Full address" value={newAddress.address_text} onChangeText={(t) => setNewAddress((f) => ({ ...f, address_text: t }))} multiline numberOfLines={2} left={<AppTextInput.Icon icon="map-marker-outline" />} style={styles.input} />
+                <View style={styles.rowGap}>
+                  <Button mode="contained" onPress={saveNewAddress} style={[uiStyles.btn, styles.flex]}>Save & use</Button>
+                  {addresses.length > 0 && <Button mode="outlined" style={uiStyles.btn} onPress={() => setAddingAddress(false)}>Cancel</Button>}
+                </View>
+              </View>
+            )}
+          </SurfaceCard>
         )}
-        <View style={[styles.row, styles.totalRow]}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalText}>{billedTotal} QAR</Text>
+
+        <SurfaceCard style={styles.section}>
+          <StepHeader icon="note-text-outline" title="Notes" />
+          <AppTextInput label="Notes (optional)" value={form.notes} onChangeText={(t) => update('notes', t)} multiline numberOfLines={2} style={styles.input} />
+        </SurfaceCard>
+
+        <SurfaceCard style={styles.section}>
+          <StepHeader icon="receipt" title="Order summary" />
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryDim}>Subtotal</Text>
+            <Text style={styles.summaryValue}>{total} QAR</Text>
+          </View>
+          {planSavings > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.savingsText}>Plan savings</Text>
+              <Text style={styles.savingsText}>-{planSavings} QAR</Text>
+            </View>
+          )}
+          <View style={[styles.summaryRow, styles.totalRow]}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalLabel}>{billedTotal} QAR</Text>
+          </View>
+        </SurfaceCard>
+      </KeyboardAwareScrollView>
+
+      {/* Pinned so the total and Confirm button are always one tap away,
+          however far down the checkout form the customer has scrolled. */}
+      {!keyboardOpen && (
+        <View style={[styles.checkoutBar, { paddingBottom: spacing.md + insets.bottom }]}>
+          <View>
+            <Text style={styles.barLabel}>Total</Text>
+            <Text style={styles.totalText}>{billedTotal} QAR</Text>
+          </View>
+          <Button
+            mode="contained"
+            icon="check-circle-outline"
+            onPress={submit}
+            loading={submitting}
+            disabled={!canSubmit}
+            buttonColor={colors.cyan}
+            textColor={colors.navy}
+            style={[uiStyles.btn, styles.confirmBtn]}
+            contentStyle={uiStyles.btnContent}
+            labelStyle={uiStyles.btnLabel}>
+            {submitting ? 'Placing order…' : 'Confirm Order'}
+          </Button>
         </View>
-        <Button
-          mode="contained"
-          icon="check-circle-outline"
-          onPress={submit}
-          loading={submitting}
-          disabled={submitting || !form.customer_name || !form.customer_phone || isPastDate}
-          buttonColor={colors.cyan}
-          textColor={colors.navy}
-          style={[uiStyles.btn, styles.confirmBtn]}
-          contentStyle={uiStyles.btnContent}
-          labelStyle={uiStyles.btnLabel}>
-          {submitting ? 'Placing order…' : `Confirm Order · ${billedTotal} QAR`}
-        </Button>
-      </View>
-    </KeyboardAwareScrollView>
+      )}
+    </View>
   );
 }
 
@@ -385,11 +410,10 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   centerScreen: { flex: 1, justifyContent: 'center', backgroundColor: colors.bg },
   centerText: { textAlign: 'center', marginTop: 4 },
-  content: { padding: spacing.lg, paddingBottom: 24 },
+  content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   section: { marginTop: spacing.md },
   dim: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
   rowGap: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 4 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm },
 
   stepHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: spacing.md },
 
@@ -428,14 +452,17 @@ const styles = StyleSheet.create({
   addAddrBtn: { alignSelf: 'flex-start' },
   dashedBox: { borderWidth: 1.2, borderStyle: 'dashed', borderColor: colors.borderStrong, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.xs },
 
-  footer: { backgroundColor: colors.navy, borderRadius: radius.xl, padding: spacing.xl, marginTop: spacing.lg, ...shadow.raised },
-  footerDim: { color: colors.onDarkMuted, fontSize: 13 },
-  footerValue: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  savingsText: { color: '#6EE7B7', fontWeight: '700', fontSize: 13 },
-  totalRow: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)', paddingTop: spacing.md, marginTop: spacing.md },
-  totalLabel: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  totalText: { fontSize: 24, fontWeight: '800', color: colors.gold },
-  confirmBtn: { marginTop: spacing.lg },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
+  summaryDim: { color: colors.textMuted, fontSize: 13 },
+  summaryValue: { color: colors.navy, fontWeight: '700', fontSize: 14 },
+  savingsText: { color: colors.success, fontWeight: '700', fontSize: 13 },
+  totalRow: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.md, marginTop: spacing.md },
+  totalLabel: { color: colors.navy, fontSize: 16, fontWeight: '800' },
+
+  checkoutBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, backgroundColor: colors.navy, paddingHorizontal: spacing.xl, paddingTop: spacing.md, borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, ...shadow.raised },
+  barLabel: { color: colors.onDarkMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
+  totalText: { fontSize: 22, fontWeight: '800', color: colors.gold },
+  confirmBtn: { flex: 1 },
 
   codeBox: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed', paddingVertical: spacing.lg, paddingHorizontal: spacing.xxl, marginTop: spacing.xl },
   codeLabel: { ...type.caption },
