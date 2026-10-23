@@ -3,7 +3,7 @@ import { View, ScrollView, StyleSheet } from 'react-native';
 import { Text, Button, ActivityIndicator, Icon } from 'react-native-paper';
 import AppTextInput from '../../components/AppTextInput';
 import { api } from '../../api/client';
-import { ErrorBanner, IconTile, StatusPill, SurfaceCard, uiStyles } from '../../components/ui';
+import { ErrorBanner, IconTile, StatusPill, SurfaceCard, ScreenHero, HERO_OVERLAP, uiStyles } from '../../components/ui';
 import { colors, radius, spacing, type, ORDER_STATUS } from '../../theme/tokens';
 
 const STAGES = [
@@ -41,14 +41,9 @@ export default function TrackOrderScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScreenHero overlap icon="map-marker-path" title="Track your order" subtitle="Enter your order code to follow your garment's journey" />
+
       <SurfaceCard style={styles.searchCard}>
-        <View style={styles.searchHead}>
-          <IconTile icon="map-marker-path" size={48} />
-          <View style={styles.flex}>
-            <Text style={type.h2}>Track your order</Text>
-            <Text style={type.small}>Enter your order code to follow your garment's journey</Text>
-          </View>
-        </View>
 
         <AppTextInput
           label="Order code"
@@ -155,8 +150,7 @@ export default function TrackOrderScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: spacing.lg, paddingBottom: 40 },
-  searchCard: { padding: spacing.xl },
-  searchHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
+  searchCard: { padding: spacing.xl, marginTop: -HERO_OVERLAP },
   input: { marginBottom: spacing.md },
   error: { marginTop: spacing.md },
   loader: { marginTop: spacing.xxl },

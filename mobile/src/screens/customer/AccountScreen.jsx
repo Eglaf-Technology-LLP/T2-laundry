@@ -6,8 +6,8 @@ import AppTextInput from '../../components/AppTextInput';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../api/client';
-import { ErrorBanner, IconTile, SectionTitle, StatusPill, SurfaceCard, uiStyles } from '../../components/ui';
-import { colors, radius, shadow, spacing, type } from '../../theme/tokens';
+import { ErrorBanner, IconTile, SectionTitle, StatusPill, SurfaceCard, ScreenHero, HERO_OVERLAP, uiStyles } from '../../components/ui';
+import { colors, radius, spacing, type } from '../../theme/tokens';
 
 function Usage({ label, used, total }) {
   const pct = total ? Math.min(100, (used / total) * 100) : 0;
@@ -140,24 +140,26 @@ export default function AccountScreen({ navigation }) {
       keyboardShouldPersistTaps="handled"
       enableOnAndroid
       extraScrollHeight={20}>
-      <View style={styles.profileHero}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials(profile.full_name || profile.email)}</Text>
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.heroHello}>Welcome,</Text>
-          <Text style={styles.heroName} numberOfLines={1}>{profile.full_name || 'there'}.</Text>
-          {!!profile.email && <Text style={styles.heroEmail} numberOfLines={1}>{profile.email}</Text>}
-        </View>
-        {membership && (
-          <View style={styles.heroPlan}>
-            <Icon source="crown" size={12} color={colors.navy} />
-            <Text style={styles.heroPlanText}>{membership.plan_name}</Text>
+      <ScreenHero overlap>
+        <View style={styles.profileRow}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials(profile.full_name || profile.email)}</Text>
           </View>
-        )}
-      </View>
+          <View style={styles.flex}>
+            <Text style={styles.heroHello}>Welcome,</Text>
+            <Text style={styles.heroName} numberOfLines={1}>{profile.full_name || 'there'}.</Text>
+            {!!profile.email && <Text style={styles.heroEmail} numberOfLines={1}>{profile.email}</Text>}
+          </View>
+          {membership && (
+            <View style={styles.heroPlan}>
+              <Icon source="crown" size={12} color={colors.navy} />
+              <Text style={styles.heroPlanText}>{membership.plan_name}</Text>
+            </View>
+          )}
+        </View>
+      </ScreenHero>
 
-      <SurfaceCard style={styles.card}>
+      <SurfaceCard style={[styles.card, styles.firstCard]}>
         <SectionTitle title="Profile" right={<IconTile icon="account-edit-outline" size={32} />} />
         <AppTextInput label="Full name" value={fullName} onChangeText={setFullName} left={<AppTextInput.Icon icon="account-outline" />} style={styles.input} />
         <AppTextInput label="Email" value={profile.email || ''} disabled left={<AppTextInput.Icon icon="email-outline" />} style={styles.input} />
@@ -325,7 +327,8 @@ const styles = StyleSheet.create({
   loader: { marginTop: 60 },
   container: { padding: spacing.lg, paddingBottom: 40 },
 
-  profileHero: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.navy, borderRadius: radius.xxl, padding: spacing.xl, marginBottom: spacing.lg, ...shadow.raised },
+  profileRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  firstCard: { marginTop: -HERO_OVERLAP },
   avatar: { width: 58, height: 58, borderRadius: 29, backgroundColor: colors.cyan, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: 'rgba(255,255,255,0.2)' },
   avatarText: { color: colors.navy, fontSize: 20, fontWeight: '800' },
   heroHello: { color: colors.onDarkMuted, fontSize: 12 },

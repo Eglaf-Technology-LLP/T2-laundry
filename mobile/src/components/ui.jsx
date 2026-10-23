@@ -77,17 +77,54 @@ export function BrandLogo({ size = 64, style }) {
   return <Image source={logo} style={[{ width: size * 0.855, height: size }, style]} resizeMode="contain" />;
 }
 
-// Shared top block for the login / signup / admin sign-in screens.
-export function AuthHeader({ title, subtitle, badge }) {
+// Navy block that continues the navigation header into the top of a screen,
+// shared by every tab so they all open the same way. It sits inside the
+// screen's padded scroll content and bleeds out to the edges with negative
+// margins (`bleed` = that padding). `overlap` leaves extra room at the
+// bottom for the next element to sit across its edge (marginTop: -OVERLAP).
+export const HERO_OVERLAP = 28;
+
+export function ScreenHero({ eyebrow, title, subtitle, icon, right, children, overlap = false, bleed = spacing.lg, style }) {
   return (
-    <View style={styles.authHeader}>
-      <View style={styles.logoRing}>
-        <BrandLogo size={64} />
-      </View>
-      {!!badge && <Text style={[type.caption, styles.authBadge]}>{badge}</Text>}
-      <Text style={[type.h1, styles.center]}>{title}</Text>
-      {!!subtitle && <Text style={[type.body, styles.center, styles.authSub]}>{subtitle}</Text>}
+    <View style={[styles.hero, { marginHorizontal: -bleed, marginTop: -bleed, paddingHorizontal: bleed + 4 }, overlap && styles.heroOverlap, style]}>
+      {/* Pull-to-overscroll / iOS bounce reveals whatever is above the
+          content — keep it navy so there's never a light gap between the
+          navigation header and this block. */}
+      <View style={styles.heroExtender} pointerEvents="none" />
+      {(!!title || !!icon || !!right) && (
+        <View style={styles.heroRow}>
+          <View style={styles.flex}>
+            {!!eyebrow && <Text style={[type.caption, styles.heroEyebrow]}>{eyebrow}</Text>}
+            {!!title && <Text style={styles.heroTitle}>{title}</Text>}
+            {!!subtitle && <Text style={styles.heroSub}>{subtitle}</Text>}
+          </View>
+          {right}
+          {!right && !!icon && (
+            <View style={styles.heroIcon}>
+              <Icon source={icon} size={26} color={colors.cyan} />
+            </View>
+          )}
+        </View>
+      )}
+      {children}
     </View>
+  );
+}
+
+// Shared top block for the login / signup / admin sign-in screens: a navy
+// hero with the logo; the form card below overlaps its bottom edge.
+export function AuthHeader({ title, subtitle, badge, bleed = spacing.xxl }) {
+  return (
+    <ScreenHero overlap bleed={bleed} style={styles.authHero}>
+      <View style={styles.authHeader}>
+        <View style={styles.logoRing}>
+          <BrandLogo size={56} />
+        </View>
+        {!!badge && <Text style={[type.caption, styles.authBadge]}>{badge}</Text>}
+        <Text style={[styles.heroTitle, styles.center]}>{title}</Text>
+        {!!subtitle && <Text style={[styles.heroSub, styles.center]}>{subtitle}</Text>}
+      </View>
+    </ScreenHero>
   );
 }
 
@@ -134,8 +171,16 @@ const styles = StyleSheet.create({
   emptyMsg: { marginTop: spacing.sm, color: colors.textMuted, maxWidth: 300 },
   pill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill, alignSelf: 'flex-start' },
   pillText: { fontSize: 11, fontWeight: '700', textTransform: 'capitalize' },
-  authHeader: { alignItems: 'center', marginBottom: spacing.xxl },
-  logoRing: { width: 104, height: 104, borderRadius: 52, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.lg, ...shadow.card },
-  authBadge: { color: colors.cyanDark, marginBottom: 6 },
-  authSub: { marginTop: 6, color: colors.textMuted },
+  hero: { backgroundColor: colors.navy, paddingTop: spacing.sm, paddingBottom: spacing.xxl, borderBottomLeftRadius: radius.xxl, borderBottomRightRadius: radius.xxl, marginBottom: spacing.lg },
+  heroOverlap: { paddingBottom: HERO_OVERLAP + spacing.lg, marginBottom: 0 },
+  heroExtender: { position: 'absolute', left: 0, right: 0, top: -800, height: 800, backgroundColor: colors.navy },
+  heroRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  heroEyebrow: { color: colors.gold, marginBottom: 4 },
+  heroTitle: { color: '#fff', fontSize: 22, lineHeight: 28, fontWeight: '800' },
+  heroSub: { color: colors.onDarkMuted, fontSize: 13, lineHeight: 19, marginTop: 4 },
+  heroIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+  authHero: { paddingTop: spacing.lg },
+  authHeader: { alignItems: 'center' },
+  logoRing: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md, ...shadow.raised },
+  authBadge: { color: colors.cyan, marginBottom: 6 },
 });

@@ -4,7 +4,7 @@ import { Button } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AppTextInput from '../../components/AppTextInput';
 import { useAuth, ADMIN_NOT_ALLOWED } from '../../lib/AuthContext';
-import { AuthHeader, ErrorBanner, SurfaceCard, uiStyles } from '../../components/ui';
+import { AuthHeader, HERO_OVERLAP, ErrorBanner, SurfaceCard, uiStyles } from '../../components/ui';
 import { colors, spacing } from '../../theme/tokens';
 
 // Used two ways: as a pushed stack screen (e.g. from the cart, with a `next`
@@ -47,7 +47,7 @@ export default function LoginScreen({ navigation, route, embedded, onShowSignup 
       keyboardShouldPersistTaps="handled">
       <AuthHeader title="Welcome back" subtitle="Log in to manage your bookings" />
 
-      <SurfaceCard>
+      <SurfaceCard style={styles.formCard}>
         <AppTextInput
           label="Email"
           value={email}
@@ -95,7 +95,8 @@ export default function LoginScreen({ navigation, route, embedded, onShowSignup 
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
-  container: { flexGrow: 1, justifyContent: 'center', padding: spacing.xxl },
+  container: { flexGrow: 1, padding: spacing.xxl },
+  formCard: { marginTop: -HERO_OVERLAP },
   input: { marginBottom: 14 },
   error: { marginBottom: spacing.sm },
   btn: { marginTop: spacing.xs },

@@ -8,7 +8,7 @@ import { useCart } from '../../lib/CartContext';
 import ItemCard from '../../components/ItemCard';
 import SearchBar from '../../components/SearchBar';
 import FilterScrollRow from '../../components/FilterScrollRow';
-import { EmptyState } from '../../components/ui';
+import { EmptyState, ScreenHero, HERO_OVERLAP } from '../../components/ui';
 import { colors, radius, shadow, spacing, type } from '../../theme/tokens';
 
 const CategoryChip = memo(function CategoryChip({ name, count, active, onSelect }) {
@@ -102,19 +102,7 @@ export default function ServicesScreen({ navigation }) {
   const listHeader = useMemo(
     () => (
       <View style={styles.header}>
-        {/* Continues the navy navigation header into a hero block, with the
-            search bar overlapping its bottom edge. */}
-        <View style={styles.hero}>
-          <View style={styles.heroRow}>
-            <View style={styles.grow}>
-              <Text style={styles.heroTitle}>What needs care today?</Text>
-              <Text style={styles.heroSub}>Choose items, pick a service, and build your order</Text>
-            </View>
-            <View style={styles.heroIcon}>
-              <Icon source="washing-machine" size={26} color={colors.cyan} />
-            </View>
-          </View>
-        </View>
+        <ScreenHero overlap icon="washing-machine" title="What needs care today?" subtitle="Choose items, pick a service, and build your order" />
 
         <SearchBar value={query} onChangeText={setQuery} placeholder="Search Kurta, Thobe, Bedsheet…" style={styles.search} />
 
@@ -184,13 +172,7 @@ const styles = StyleSheet.create({
   listContent: { padding: spacing.lg, paddingBottom: 110, gap: spacing.md },
   columnWrapper: { gap: spacing.md },
   header: { marginBottom: 4 },
-  // Negative margins cancel the list's padding so the hero runs edge to edge.
-  hero: { backgroundColor: colors.navy, marginHorizontal: -spacing.lg, marginTop: -spacing.lg, paddingHorizontal: spacing.xl, paddingTop: spacing.sm, paddingBottom: 46, borderBottomLeftRadius: radius.xxl, borderBottomRightRadius: radius.xxl },
-  heroRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  heroTitle: { color: '#fff', fontSize: 22, lineHeight: 28, fontWeight: '800' },
-  heroSub: { color: colors.onDarkMuted, fontSize: 13, marginTop: 4 },
-  heroIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-  search: { marginTop: -26 },
+  search: { marginTop: -HERO_OVERLAP },
   filterHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: spacing.xl, marginBottom: 2 },
   filterTitle: { ...type.h3 },
   resultText: { fontSize: 12, fontWeight: '600', color: colors.textMuted },

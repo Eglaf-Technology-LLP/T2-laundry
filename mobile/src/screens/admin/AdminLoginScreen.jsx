@@ -5,7 +5,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import AppTextInput from '../../components/AppTextInput';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../api/client';
-import { AuthHeader, ErrorBanner, SurfaceCard, uiStyles } from '../../components/ui';
+import { AuthHeader, HERO_OVERLAP, ErrorBanner, SurfaceCard, uiStyles } from '../../components/ui';
 import { colors, spacing } from '../../theme/tokens';
 
 export default function AdminLoginScreen({ navigation }) {
@@ -47,7 +47,7 @@ export default function AdminLoginScreen({ navigation }) {
       keyboardShouldPersistTaps="handled">
       <AuthHeader badge="Staff only" title="Admin sign in" subtitle="T2 Laundry command center" />
 
-      <SurfaceCard>
+      <SurfaceCard style={styles.formCard}>
         <AppTextInput
           label="Email"
           value={email}
@@ -91,7 +91,8 @@ export default function AdminLoginScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
-  container: { flexGrow: 1, justifyContent: 'center', padding: spacing.xxl },
+  container: { flexGrow: 1, padding: spacing.xxl },
+  formCard: { marginTop: -HERO_OVERLAP },
   input: { marginBottom: 14 },
   error: { marginBottom: spacing.sm },
   btn: { marginTop: spacing.xs },

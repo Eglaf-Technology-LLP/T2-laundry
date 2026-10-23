@@ -4,7 +4,7 @@ import { Button } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AppTextInput from '../../components/AppTextInput';
 import { useAuth } from '../../lib/AuthContext';
-import { AuthHeader, EmptyState, ErrorBanner, SurfaceCard, uiStyles } from '../../components/ui';
+import { AuthHeader, HERO_OVERLAP, EmptyState, ErrorBanner, SurfaceCard, uiStyles } from '../../components/ui';
 import { colors, spacing } from '../../theme/tokens';
 
 // Like LoginScreen: a pushed stack screen (carrying `next`/`plan` to resume
@@ -72,7 +72,7 @@ export default function SignupScreen({ navigation, route, embedded, onShowLogin 
       keyboardShouldPersistTaps="handled">
       <AuthHeader title="Create your account" subtitle="Sign up to subscribe to a membership" />
 
-      <SurfaceCard>
+      <SurfaceCard style={styles.formCard}>
         <AppTextInput label="Full name" value={fullName} onChangeText={setFullName} left={<AppTextInput.Icon icon="account-outline" />} style={styles.input} />
         <AppTextInput
           label="Email"
@@ -116,7 +116,8 @@ export default function SignupScreen({ navigation, route, embedded, onShowLogin 
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
-  container: { flexGrow: 1, justifyContent: 'center', padding: spacing.xxl },
+  container: { flexGrow: 1, padding: spacing.xxl },
+  formCard: { marginTop: -HERO_OVERLAP },
   confirmWrap: { justifyContent: 'center' },
   confirmBtn: { marginTop: spacing.xxl, alignSelf: 'stretch' },
   input: { marginBottom: 14 },

@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../api/client';
 
-import { ErrorBanner, IconTile, uiStyles } from '../../components/ui';
+import { ErrorBanner, IconTile, ScreenHero, uiStyles } from '../../components/ui';
 import { colors, radius, shadow, spacing, type } from '../../theme/tokens';
 
 const PERKS = [
@@ -162,10 +162,11 @@ export default function SubscriptionScreen({ navigation, route }) {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={styles.container}>
-      <View style={styles.hero}>
-        <Text style={[type.caption, styles.eyebrow]}>Membership Plans</Text>
-        <Text style={styles.title}>One membership.{'\n'}Limitless care.</Text>
-        <Text style={styles.subtitle}>Free pickup & delivery, priority booking and real-time tracking on every tier.</Text>
+      <ScreenHero
+        eyebrow="Membership Plans"
+        title={'One membership.\nLimitless care.'}
+        subtitle="Free pickup & delivery, priority booking and real-time tracking on every tier."
+        icon="crown">
         <View style={styles.perks}>
           {PERKS.map((p) => (
             <View key={p.label} style={styles.perk}>
@@ -174,7 +175,7 @@ export default function SubscriptionScreen({ navigation, route }) {
             </View>
           ))}
         </View>
-      </View>
+      </ScreenHero>
 
       <ErrorBanner message={error} style={styles.error} />
 
@@ -232,19 +233,15 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   centerText: { textAlign: 'center' },
   container: { padding: spacing.lg, paddingBottom: 40 },
-  hero: { backgroundColor: colors.navy, borderRadius: radius.xxl, padding: spacing.xxl, ...shadow.raised },
-  eyebrow: { color: colors.gold },
-  title: { color: '#fff', fontSize: 26, lineHeight: 32, fontWeight: '800', marginTop: spacing.sm },
-  subtitle: { color: colors.onDarkMuted, fontSize: 13, lineHeight: 19, marginTop: spacing.sm },
   perks: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
   perk: { flex: 1, alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: radius.md, paddingVertical: 10 },
   perkText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  error: { marginTop: spacing.md },
+  error: { marginBottom: spacing.md },
   loader: { marginTop: 40 },
-  statusBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, marginTop: spacing.lg, borderWidth: 1, borderColor: colors.successSoft, ...shadow.card },
+  statusBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, borderWidth: 1, borderColor: colors.successSoft, ...shadow.card },
   navyBold: { color: colors.navy, fontWeight: '700', fontSize: 14 },
   dim: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-  plansWrap: { marginTop: spacing.xl, gap: spacing.lg },
+  plansWrap: { marginTop: spacing.lg, gap: spacing.lg },
   planCard: { borderRadius: radius.xxl, padding: spacing.xl, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, ...shadow.card },
   planCardFeatured: { backgroundColor: colors.navy, borderColor: colors.gold, borderWidth: 1.5, ...shadow.raised },
   planCardCurrent: { borderColor: colors.success, borderWidth: 1.5 },

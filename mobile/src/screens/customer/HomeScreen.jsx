@@ -2,7 +2,7 @@ import React from 'react';
 import { View, ScrollView, StyleSheet, ImageBackground, Pressable } from 'react-native';
 import { Text, Button, Icon } from 'react-native-paper';
 import { useAuth } from '../../lib/AuthContext';
-import { IconTile, SectionTitle, BrandLogo, uiStyles } from '../../components/ui';
+import { IconTile, SectionTitle, BrandLogo, ScreenHero, HERO_OVERLAP, uiStyles } from '../../components/ui';
 import { colors, radius, shadow, spacing, type } from '../../theme/tokens';
 
 const hero = require('../../assets/hero.jpg');
@@ -33,13 +33,16 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.greetRow}>
-        <View style={styles.flex}>
-          <Text style={type.small}>{name ? 'Welcome back' : 'Welcome to T2 Laundry'}</Text>
-          <Text style={type.h1}>{name ? `Hi, ${name} 👋` : 'Fresh starts here'}</Text>
-        </View>
-        <BrandLogo size={46} />
-      </View>
+      <ScreenHero
+        overlap
+        eyebrow={name ? 'Welcome back' : 'Welcome to T2 Laundry'}
+        title={name ? `Hi, ${name} 👋` : 'Fresh starts here'}
+        right={
+          <View style={styles.logoBadge}>
+            <BrandLogo size={40} />
+          </View>
+        }
+      />
 
       <ImageBackground source={hero} style={styles.hero} imageStyle={styles.heroImage}>
         <View style={styles.heroScrim} />
@@ -144,9 +147,9 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: spacing.lg, paddingBottom: 40 },
   pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
-  greetRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg, marginTop: spacing.xs },
+  logoBadge: { width: 54, height: 54, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
 
-  hero: { borderRadius: radius.xxl, overflow: 'hidden', minHeight: 300, justifyContent: 'flex-end', ...shadow.raised },
+  hero: { marginTop: -HERO_OVERLAP, borderRadius: radius.xxl, overflow: 'hidden', minHeight: 300, justifyContent: 'flex-end', ...shadow.raised },
   heroImage: { borderRadius: radius.xxl },
   heroScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(14,35,70,0.68)' },
   heroBody: { padding: spacing.xl },
