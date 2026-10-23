@@ -14,6 +14,7 @@ export default function CustomerNavigator() {
       <Stack.Screen name="Tabs" component={CustomerTabs} />
       <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: true, title: 'Log In' }} />
       <Stack.Screen name="Signup" component={SignupScreen} options={{ headerShown: true, title: 'Sign Up' }} />
-      <Stack.Screen name="Cart" component={CartScreen} options={{ headerShown: true, title: 'Your Order' }} />    </Stack.Navigator>
+      <Stack.Screen name="Cart" component={CartScreen} options={{ headerShown: true, title: 'Your Order' }} />
+    </Stack.Navigator>
   );
 }
