@@ -17,9 +17,16 @@ export default function RootNavigator() {
     );
   }
 
+  const isAdmin = role === 'admin';
+
+  // Both navigators have a root route named 'Tabs', so swapping one for the
+  // other inside the same container carries the old tab state across (e.g.
+  // the admin's Dashboard/Orders routes nested under the customer's Tabs
+  // after logout), which breaks tab presses. Keying the container on the
+  // role gives each side a fresh navigation state on login/logout.
   return (
-    <NavigationContainer>
-      {role === 'admin' ? <AdminNavigator /> : <CustomerNavigator />}
+    <NavigationContainer key={isAdmin ? 'admin' : 'customer'}>
+      {isAdmin ? <AdminNavigator /> : <CustomerNavigator />}}
     </NavigationContainer>
   );
 }
