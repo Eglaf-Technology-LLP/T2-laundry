@@ -3,9 +3,10 @@ import { View, FlatList, StyleSheet } from 'react-native';
 import { Text, IconButton, ActivityIndicator, Chip, FAB } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../../api/client';
+import { colors, shadow } from '../../theme/tokens';
 
-const NAVY = '#0E2346';
-const GOLD = '#B08D2C';
+const NAVY = colors.navy;
+const GOLD = colors.goldDark;
 
 export default function AdminPlansScreen({ navigation }) {
   const [plans, setPlans] = useState([]);
@@ -60,9 +61,9 @@ export default function AdminPlansScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#f8fafc' },
+  flex: { flex: 1, backgroundColor: colors.bg },
   countText: { color: '#64748b', fontSize: 12, marginBottom: 8 },
-  card: { backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 10 },
+  card: { backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.border, ...shadow.card },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rowGap: { flexDirection: 'row', alignItems: 'center' },
   navyBold: { color: NAVY, fontWeight: '700' },

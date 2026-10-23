@@ -4,10 +4,11 @@ import { Text, Portal, Modal, Button, IconButton, Checkbox, ActivityIndicator, F
 import AppTextInput from '../../components/AppTextInput';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../../api/client';
+import { colors, shadow } from '../../theme/tokens';
 
 const EMPTY_FORM = { name: '', slug: '', description: '', icon: 'Droplets', base_price: '0', turnaround_hours: '24', currency: 'QAR', active: true };
-const NAVY = '#0E2346';
-const GOLD = '#B08D2C';
+const NAVY = colors.navy;
+const GOLD = colors.goldDark;
 
 export default function AdminServicesScreen() {
   const [services, setServices] = useState([]);
@@ -100,9 +101,9 @@ export default function AdminServicesScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#f8fafc' },
+  flex: { flex: 1, backgroundColor: colors.bg },
   countText: { color: '#64748b', fontSize: 12, marginBottom: 8 },
-  card: { backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 10 },
+  card: { backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.border, ...shadow.card },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rowGap: { flexDirection: 'row', alignItems: 'center' },
   navyBold: { color: NAVY, fontWeight: '700' },
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
   gold: { color: GOLD, fontWeight: '700', marginTop: 8 },
   emptyText: { textAlign: 'center', color: '#94a3b8', paddingVertical: 40 },
   fab: { position: 'absolute', right: 16, bottom: 16, backgroundColor: NAVY },
-  modal: { backgroundColor: '#fff', margin: 20, padding: 20, borderRadius: 16, maxHeight: '85%' },
+  modal: { backgroundColor: '#fff', margin: 20, padding: 20, borderRadius: 24, maxHeight: '85%' },
   input: { marginTop: 10 },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 16 },

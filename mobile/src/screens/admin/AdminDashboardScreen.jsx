@@ -3,9 +3,10 @@ import { View, ScrollView, StyleSheet } from 'react-native';
 import { Text, Card, Chip, ActivityIndicator } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../../api/client';
+import { colors } from '../../theme/tokens';
 
-const NAVY = '#0E2346';
-const GOLD = '#D4AF37';
+const NAVY = colors.navy;
+const GOLD = colors.goldDark;
 const STATUS_LABEL = { pending: 'pending', picked_up: 'picked up', in_facility: 'in facility', quality_check: 'quality check', out_for_delivery: 'out for delivery', delivered: 'delivered' };
 
 export default function AdminDashboardScreen({ navigation }) {
@@ -127,7 +128,7 @@ export default function AdminDashboardScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, paddingBottom: 40, backgroundColor: '#f8fafc' },
+  container: { padding: 16, paddingBottom: 40, backgroundColor: colors.bg },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   statCard: { width: '47%', borderRadius: 16 },
   statValue: { fontSize: 26, fontWeight: '700', color: NAVY },
@@ -146,5 +147,5 @@ const styles = StyleSheet.create({
   barTrack: { height: 8, borderRadius: 4, backgroundColor: '#e2e8f0', overflow: 'hidden', marginTop: 4 },
   barFill: { height: '100%', borderRadius: 4, backgroundColor: GOLD },
   link: { color: GOLD, fontSize: 13, fontWeight: '600' },
-  orderRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, padding: 10, marginTop: 8 },
+  orderRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bg, borderRadius: 12, padding: 10, marginTop: 8 },
 });

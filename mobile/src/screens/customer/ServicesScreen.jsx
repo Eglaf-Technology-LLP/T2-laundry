@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, FlatList, Pressable } from 'react-native';
-import { Text, Chip, Badge } from 'react-native-paper';
+import { Text, Icon, ActivityIndicator } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../../api/client';
 import { useAuth } from '../../lib/AuthContext';
@@ -8,15 +8,18 @@ import { useCart } from '../../lib/CartContext';
 import ItemCard from '../../components/ItemCard';
 import AppTextInput from '../../components/AppTextInput';
 import FilterScrollRow from '../../components/FilterScrollRow';
-
-const NAVY = '#0E2346';
-const GOLD = '#B08D2C';
+import { EmptyState } from '../../components/ui';
+import { colors, radius, shadow, spacing, type } from '../../theme/tokens';
 
 const CategoryChip = memo(function CategoryChip({ name, active, onSelect }) {
   return (
-    <Chip selected={active} showSelectedCheck={false} onPress={() => onSelect(name)} style={active ? styles.chipActive : styles.chip} textStyle={active ? { color: '#fff' } : undefined}>
-      {name}
-    </Chip>
+    <Pressable
+      onPress={() => onSelect(name)}
+      style={[styles.chip, active && styles.chipActive]}
+      accessibilityRole="button"
+      accessibilityState={active ? { selected: true } : {}}>
+      <Text style={[styles.chipText, active && styles.chipTextActive]}>{name}</Text>
+    </Pressable>
   );
 });
 
@@ -27,6 +30,7 @@ export default function ServicesScreen({ navigation }) {
   const [cats, setCats] = useState([]);
   const [activeCat, setActiveCat] = useState('All');
   const [query, setQuery] = useState('');
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -35,7 +39,7 @@ export default function ServicesScreen({ navigation }) {
     ]).then(([i, c]) => {
       setItems(i);
       setCats([{ name: 'All', slug: 'all' }, ...c]);
-    });
+    }).finally(() => setLoaded(true));
   }, []);
 
   useFocusEffect(
@@ -83,7 +87,10 @@ export default function ServicesScreen({ navigation }) {
   const listHeader = useMemo(
     () => (
       <View style={styles.header}>
-        <Text style={styles.subtitle}>Choose items, pick a service, and build your order</Text>
+        <View style={styles.intro}>
+          <Text style={type.h1}>What needs care today?</Text>
+          <Text style={[type.small, styles.subtitle]}>Choose items, pick a service, and build your order</Text>
+        </View>
 
         <AppTextInput
           value={query}
@@ -116,15 +123,30 @@ export default function ServicesScreen({ navigation }) {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={listHeader}
         renderItem={renderItem}
-        ListEmptyComponent={<Text style={styles.emptyText}>No items found.</Text>}
+        ListEmptyComponent={
+          loaded ? (
+            <EmptyState icon="tshirt-crew-outline" title="No items found" message="Try a different search or category." />
+          ) : (
+            <ActivityIndicator style={styles.loader} color={colors.navy} />
+          )
+        }
       />
 
       {count > 0 && (
-        <Pressable style={styles.cartBar} onPress={() => navigation.navigate('Cart')}>
-          <Text style={styles.cartBarText}>{count} item{count !== 1 ? 's' : ''}</Text>
+        <Pressable style={({ pressed }) => [styles.cartBar, pressed && styles.cartBarPressed]} onPress={() => navigation.navigate('Cart')} accessibilityRole="button">
+          <View style={styles.cartIcon}>
+            <Icon source="basket" size={20} color={colors.navy} />
+            <View style={styles.cartBadge}>
+              <Text style={styles.cartBadgeText}>{count}</Text>
+            </View>
+          </View>
+          <View style={styles.grow}>
+            <Text style={styles.cartBarText}>{count} item{count !== 1 ? 's' : ''}</Text>
+            <Text style={styles.cartBarSub}>{billedTotal} QAR</Text>
+          </View>
           <View style={styles.rowGap}>
-            <Text style={styles.cartBarText}>{billedTotal} QAR</Text>
-            <Badge>{count}</Badge>
+            <Text style={styles.cartBarText}>View order</Text>
+            <Icon source="arrow-right" size={18} color="#fff" />
           </View>
         </Pressable>
       )}
@@ -133,17 +155,26 @@ export default function ServicesScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#f8fafc' },
-  listContent: { padding: 16, paddingBottom: 100, gap: 12 },
-  columnWrapper: { gap: 12 },
+  flex: { flex: 1, backgroundColor: colors.bg },
+  grow: { flex: 1 },
+  listContent: { padding: spacing.lg, paddingBottom: 110, gap: spacing.md },
+  columnWrapper: { gap: spacing.md },
   header: { marginBottom: 4 },
-  subtitle: { textAlign: 'center', color: '#64748b' },
-  search: { marginTop: 16 },
-  catList: { gap: 8, paddingVertical: 12 },
-  chip: { backgroundColor: '#fff' },
-  chipActive: { backgroundColor: NAVY },
-  emptyText: { textAlign: 'center', color: '#94a3b8', paddingVertical: 60 },
-  cartBar: { position: 'absolute', bottom: 16, left: 16, right: 16, backgroundColor: NAVY, borderRadius: 18, paddingVertical: 16, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 6 },
-  cartBarText: { color: '#fff', fontWeight: '700' },
-  rowGap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  intro: { marginBottom: spacing.md },
+  subtitle: { marginTop: 4 },
+  search: { marginTop: 0 },
+  catList: { gap: spacing.sm, paddingVertical: spacing.sm },
+  chip: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  chipActive: { backgroundColor: colors.navy, borderColor: colors.navy },
+  chipText: { fontSize: 13, fontWeight: '600', color: colors.textBody },
+  chipTextActive: { color: '#fff' },
+  loader: { paddingVertical: 60 },
+  cartBar: { position: 'absolute', bottom: spacing.lg, left: spacing.lg, right: spacing.lg, backgroundColor: colors.navy, borderRadius: radius.xl, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: spacing.md, ...shadow.raised },
+  cartBarPressed: { opacity: 0.92 },
+  cartIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: colors.cyan, alignItems: 'center', justifyContent: 'center' },
+  cartBadge: { position: 'absolute', top: -5, right: -5, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.navy },
+  cartBadgeText: { fontSize: 10, fontWeight: '800', color: colors.navy },
+  cartBarText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+  cartBarSub: { color: colors.cyan, fontWeight: '700', fontSize: 12, marginTop: 1 },
+  rowGap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });

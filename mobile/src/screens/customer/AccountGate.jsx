@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Text, Button, ActivityIndicator } from 'react-native-paper';
+import { Button, ActivityIndicator } from 'react-native-paper';
 import { useAuth } from '../../lib/AuthContext';
 import AccountScreen from './AccountScreen';
+import { EmptyState, uiStyles } from '../../components/ui';
+import { colors, spacing } from '../../theme/tokens';
 
 // Tab equivalent of the web app's RequireAuth wrapper around /account — a tab
 // can't redirect the way a route guard does, so show a login prompt in place
@@ -10,15 +12,21 @@ import AccountScreen from './AccountScreen';
 export default function AccountGate({ navigation }) {
   const { isLoadingAuth, isAuthenticated } = useAuth();
 
-  if (isLoadingAuth) return <ActivityIndicator style={{ marginTop: 60 }} />;
+  if (isLoadingAuth) return <ActivityIndicator style={styles.loader} color={colors.navy} />;
 
   if (!isAuthenticated) {
     return (
       <View style={styles.container}>
-        <Text variant="headlineSmall" style={styles.title}>Log in to view your account</Text>
-        <Text style={styles.subtitle}>Track memberships, addresses and past orders.</Text>
-        <Button mode="contained" style={{ marginTop: 20 }} onPress={() => navigation.navigate('Login')}>Log In</Button>
-        <Button mode="text" onPress={() => navigation.navigate('Signup')}>Create an account</Button>
+        <EmptyState icon="account-lock-outline" title="Log in to view your account" message="Track memberships, addresses and past orders.">
+          <View style={styles.actions}>
+            <Button mode="contained" style={uiStyles.btn} contentStyle={uiStyles.btnContent} labelStyle={uiStyles.btnLabel} onPress={() => navigation.navigate('Login')}>
+              Log In
+            </Button>
+            <Button mode="outlined" style={[uiStyles.btn, styles.outlined]} contentStyle={uiStyles.btnContent} labelStyle={uiStyles.btnLabel} onPress={() => navigation.navigate('Signup')}>
+              Create an account
+            </Button>
+          </View>
+        </EmptyState>
       </View>
     );
   }
@@ -27,7 +35,8 @@ export default function AccountGate({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  title: { color: '#0E2346', fontWeight: '700', textAlign: 'center' },
-  subtitle: { color: '#64748b', textAlign: 'center', marginTop: 8 },
+  loader: { marginTop: 60 },
+  container: { flex: 1, justifyContent: 'center', backgroundColor: colors.bg },
+  actions: { alignSelf: 'stretch', gap: spacing.md, marginTop: spacing.xxl },
+  outlined: { borderColor: colors.navy, borderWidth: 1.2 },
 });

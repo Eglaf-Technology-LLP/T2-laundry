@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
-import { Text, Chip, IconButton } from 'react-native-paper';
+import { Text, IconButton, Icon } from 'react-native-paper';
+import { colors, radius, shadow } from '../theme/tokens';
 
 const SERVICE_OPTIONS = [
   { key: 'wash_price', label: 'Wash' },
@@ -9,30 +10,27 @@ const SERVICE_OPTIONS = [
   { key: 'dryclean_price', label: 'Dry Clean' },
 ];
 
-const NAVY = '#0E2346';
-const GOLD = '#D4AF37';
-
 function ItemCard({ item, inPlan, lines = [], onSelectService, onQty }) {
   const available = SERVICE_OPTIONS.filter((o) => (item[o.key] || 0) > 0);
   const lineFor = (key) => lines.find((l) => l.serviceKey === key);
   const total = lines.reduce((s, l) => s + l.price * l.quantity, 0);
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, lines.length > 0 && styles.cardSelected]}>
       {item.popular && (
         <View style={styles.popularBadge}>
+          <Icon source="fire" size={10} color={colors.navy} />
           <Text style={styles.popularText}>Popular</Text>
         </View>
       )}
-      <View style={styles.headerRow}>
-        <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.category}>{item.category}</Text>
-      </View>
+      <Text style={styles.category} numberOfLines={1}>{item.category}</Text>
+      <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
 
       {inPlan && (
-        <Chip compact style={styles.planChip} textStyle={styles.planChipText}>
-          Included in your plan
-        </Chip>
+        <View style={styles.planChip}>
+          <Icon source="crown" size={10} color={colors.success} />
+          <Text style={styles.planChipText}>Included in your plan</Text>
+        </View>
       )}
 
       {/* One consistent-height row per service — a 2-column grid made the
@@ -46,7 +44,7 @@ function ItemCard({ item, inPlan, lines = [], onSelectService, onQty }) {
           return (
             <View key={o.key} style={[styles.serviceRow, isActive && styles.serviceRowActive]}>
               <View style={styles.serviceInfo}>
-                <Text style={[styles.serviceLabel, isActive && styles.serviceLabelActive]}>{o.label}</Text>
+                <Text style={[styles.serviceLabel, isActive && styles.serviceLabelActive]} numberOfLines={1}>{o.label}</Text>
                 <Text style={[styles.servicePrice, isActive && styles.servicePriceActive]}>
                   {isActive ? `${item[o.key] * line.quantity} QAR` : `${item[o.key]} QAR`}
                 </Text>
@@ -54,13 +52,18 @@ function ItemCard({ item, inPlan, lines = [], onSelectService, onQty }) {
 
               {isActive ? (
                 <View style={styles.stepper}>
-                  <IconButton icon="minus" size={14} iconColor="#fff" style={styles.stepperBtn} onPress={() => onQty(item.id, o.key, -1)} />
+                  <IconButton icon="minus" size={14} iconColor="#fff" style={styles.stepperBtn} onPress={() => onQty(item.id, o.key, -1)} accessibilityLabel={`Remove one ${o.label}`} />
                   <Text style={styles.stepperValue}>{line.quantity}</Text>
-                  <IconButton icon="plus" size={14} iconColor="#fff" style={styles.stepperBtn} onPress={() => onQty(item.id, o.key, 1)} />
+                  <IconButton icon="plus" size={14} iconColor={colors.navy} style={[styles.stepperBtn, styles.stepperBtnPlus]} onPress={() => onQty(item.id, o.key, 1)} accessibilityLabel={`Add one ${o.label}`} />
                 </View>
               ) : (
-                <Pressable style={styles.addBtn} onPress={() => onSelectService(item, o.key)} accessibilityRole="button">
-                  <Text style={styles.addBtnText}>Add</Text>
+                <Pressable
+                  style={({ pressed }) => [styles.addBtn, pressed && styles.addBtnPressed]}
+                  onPress={() => onSelectService(item, o.key)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Add ${item.name} ${o.label}`}
+                  hitSlop={6}>
+                  <Icon source="plus" size={16} color={colors.navy} />
                 </Pressable>
               )}
             </View>
@@ -101,38 +104,40 @@ function areEqual(prev, next) {
 export default memo(ItemCard, areEqual);
 
 const styles = StyleSheet.create({
-  card: { flex: 1, backgroundColor: '#fff', borderRadius: 18, padding: 14, elevation: 1, position: 'relative' },
-  popularBadge: { position: 'absolute', top: -8, right: 12, backgroundColor: GOLD, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, zIndex: 1 },
-  popularText: { fontSize: 9, fontWeight: '700', color: NAVY },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  name: { fontSize: 14, fontWeight: '700', color: NAVY, flex: 1 },
-  category: { fontSize: 9, color: '#94a3b8', textTransform: 'uppercase' },
-  planChip: { alignSelf: 'flex-start', backgroundColor: '#d1fae5', marginTop: 6, justifyContent: 'center' },
-  planChipText: { fontSize: 9, color: '#047857' },
-  serviceList: { marginTop: 10, gap: 6 },
+  card: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.xl, padding: 14, borderWidth: 1, borderColor: colors.border, position: 'relative', ...shadow.card },
+  cardSelected: { borderColor: colors.cyan, borderWidth: 1.5 },
+  popularBadge: { position: 'absolute', top: -9, right: 12, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: colors.gold, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3, zIndex: 1 },
+  popularText: { fontSize: 9, fontWeight: '800', color: colors.navy },
+  category: { fontSize: 10, fontWeight: '700', color: colors.cyanDark, textTransform: 'uppercase', letterSpacing: 0.6 },
+  name: { fontSize: 15, fontWeight: '800', color: colors.navy, marginTop: 2 },
+  planChip: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', backgroundColor: colors.successSoft, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3, marginTop: 6 },
+  planChipText: { fontSize: 9, fontWeight: '700', color: colors.success },
+  serviceList: { marginTop: 12, gap: 6 },
   serviceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 40,
-    paddingHorizontal: 10,
-    borderRadius: 12,
+    minHeight: 44,
+    paddingLeft: 10,
+    paddingRight: 6,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#fafafa',
+    borderColor: colors.border,
   },
-  serviceRowActive: { backgroundColor: NAVY, borderColor: NAVY },
+  serviceRowActive: { backgroundColor: colors.navy, borderColor: colors.navy },
   serviceInfo: { flex: 1, minWidth: 0 },
-  serviceLabel: { fontSize: 12, fontWeight: '600', color: '#334155' },
+  serviceLabel: { fontSize: 12, fontWeight: '700', color: colors.textBody },
   serviceLabelActive: { color: '#fff' },
-  servicePrice: { fontSize: 10, color: '#94a3b8', marginTop: 1 },
-  servicePriceActive: { color: 'rgba(255,255,255,0.75)' },
-  addBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: NAVY },
-  addBtnText: { fontSize: 11, fontWeight: '700', color: NAVY },
+  servicePrice: { fontSize: 11, color: colors.textMuted, marginTop: 1, fontWeight: '600' },
+  servicePriceActive: { color: colors.cyan },
+  addBtn: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1.2, borderColor: colors.navy },
+  addBtnPressed: { backgroundColor: colors.navySoft },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   stepperBtn: { margin: 0, width: 26, height: 26, backgroundColor: 'rgba(255,255,255,0.15)' },
-  stepperValue: { color: '#fff', fontSize: 13, fontWeight: '700', width: 20, textAlign: 'center' },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#f8fafc', borderRadius: 12, padding: 8, marginTop: 10 },
-  summaryText: { fontSize: 11, color: '#64748b' },
-  summaryPrice: { fontSize: 12, fontWeight: '700', color: '#B08D2C' },
+  stepperBtnPlus: { backgroundColor: colors.cyan },
+  stepperValue: { color: '#fff', fontSize: 13, fontWeight: '800', width: 20, textAlign: 'center' },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.cyanSoft, borderRadius: radius.md, paddingHorizontal: 10, paddingVertical: 8, marginTop: 10 },
+  summaryText: { fontSize: 11, color: colors.navy, fontWeight: '600' },
+  summaryPrice: { fontSize: 13, fontWeight: '800', color: colors.navy },
 });

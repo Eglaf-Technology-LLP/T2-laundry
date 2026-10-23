@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, Pressable, Platform } from 'react-native';
-import { Text, Button, IconButton, Menu } from 'react-native-paper';
+import { View, ScrollView, StyleSheet, Pressable, Platform } from 'react-native';
+import { Text, Button, IconButton, Icon } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppTextInput from '../../components/AppTextInput';
@@ -8,10 +8,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { api } from '../../api/client';
 import { useAuth } from '../../lib/AuthContext';
 import { useCart } from '../../lib/CartContext';
+import { EmptyState, IconTile, SurfaceCard, uiStyles } from '../../components/ui';
+import { colors, radius, shadow, spacing, type } from '../../theme/tokens';
 
 const SLOTS = ['08:00 – 10:00', '10:00 – 12:00', '12:00 – 14:00', '14:00 – 16:00', '16:00 – 18:00', '18:00 – 20:00'];
-const NAVY = '#0E2346';
-const GOLD = '#B08D2C';
 
 // Mirrors the web app's create_order usage-tracking so the total shown here
 // matches what the server will actually bill.
@@ -34,24 +34,34 @@ function todayISO() {
 }
 
 function CartLines({ splitLines, changeQty, removeLine }) {
-  return splitLines.map((l) => (
-    <View key={`${l.id}-${l.serviceKey}`} style={styles.lineRow}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.navyBold}>{l.name}</Text>
+  return splitLines.map((l, i) => (
+    <View key={`${l.id}-${l.serviceKey}`} style={[styles.lineRow, i > 0 && styles.lineDivider]}>
+      <IconTile icon="tshirt-crew-outline" size={40} tone="navy" />
+      <View style={styles.flex}>
+        <Text style={styles.lineName} numberOfLines={1}>{l.name}</Text>
         {l.freeQty > 0 ? (
           <Text style={styles.freeText}>{l.serviceLabel} · {l.freeQty} FREE{l.extraQty > 0 ? ` + ${l.extraQty} x ${l.price} QAR` : ' (plan)'}</Text>
         ) : (
           <Text style={styles.dim}>{l.serviceLabel} · {l.price} QAR</Text>
         )}
       </View>
-      <View style={styles.rowGap}>
-        <IconButton icon="minus" size={16} mode="contained-tonal" onPress={() => changeQty(l.id, l.serviceKey, -1)} />
-        <Text style={styles.navyBold}>{l.quantity}</Text>
-        <IconButton icon="plus" size={16} mode="contained-tonal" onPress={() => changeQty(l.id, l.serviceKey, 1)} />
-        <IconButton icon="trash-can-outline" size={16} onPress={() => removeLine(l.id, l.serviceKey)} />
+      <View style={styles.stepper}>
+        <IconButton icon="minus" size={14} iconColor={colors.navy} style={styles.stepBtn} onPress={() => changeQty(l.id, l.serviceKey, -1)} accessibilityLabel={`Remove one ${l.name}`} />
+        <Text style={styles.stepValue}>{l.quantity}</Text>
+        <IconButton icon="plus" size={14} iconColor={colors.navy} style={styles.stepBtn} onPress={() => changeQty(l.id, l.serviceKey, 1)} accessibilityLabel={`Add one ${l.name}`} />
       </View>
+      <IconButton icon="trash-can-outline" size={18} iconColor={colors.error} style={styles.trash} onPress={() => removeLine(l.id, l.serviceKey)} accessibilityLabel={`Remove ${l.name}`} />
     </View>
   ));
+}
+
+function StepHeader({ icon, title }) {
+  return (
+    <View style={styles.stepHeader}>
+      <IconTile icon={icon} size={32} />
+      <Text style={type.h3}>{title}</Text>
+    </View>
+  );
 }
 
 export default function CartScreen({ navigation }) {
@@ -65,8 +75,6 @@ export default function CartScreen({ navigation }) {
   const [addingAddress, setAddingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({ label: '', address_text: '' });
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [slotMenuOpen, setSlotMenuOpen] = useState(false);
-  const [addrMenuOpen, setAddrMenuOpen] = useState(false);
 
   const splitLines = useMemo(() => withPlanSplit(lines, planState), [lines, planState]);
   const total = lines.reduce((s, l) => s + l.price * l.quantity, 0);
@@ -95,7 +103,6 @@ export default function CartScreen({ navigation }) {
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const selectAddress = (addr) => {
-    setAddrMenuOpen(false);
     setAddingAddress(false);
     update('address', addr.address_text);
   };
@@ -144,29 +151,42 @@ export default function CartScreen({ navigation }) {
   };
 
   if (placed) {
+    const failed = placed.code === 'ERROR';
     return (
-      <View style={styles.placedBox}>
-        <Text variant="headlineSmall" style={styles.navy}>{placed.code === 'ERROR' ? 'Something went wrong' : 'Order placed!'}</Text>
-        {placed.code !== 'ERROR' && (
-          <>
-            <Text style={styles.dim}>Your order code</Text>
-            <Text style={styles.orderCode}>{placed.code}</Text>
-            <Text style={[styles.dim, { textAlign: 'center', marginTop: 8 }]}>We'll send confirmation shortly. Track your garment's journey anytime.</Text>
-            <Button mode="outlined" style={{ marginTop: 16 }} onPress={() => navigation.navigate('Track')}>Track My Order</Button>
-          </>
-        )}
-        <Button mode="contained" style={{ marginTop: 12 }} onPress={() => { setPlaced(null); navigation.navigate('Services'); }}>
-          {placed.code === 'ERROR' ? 'Back to cart' : 'Place another order'}
-        </Button>
+      <View style={styles.centerScreen}>
+        <EmptyState
+          icon={failed ? 'alert-circle-outline' : 'check-circle-outline'}
+          title={failed ? 'Something went wrong' : 'Order placed!'}
+          message={failed ? undefined : "We'll send confirmation shortly. Track your garment's journey anytime."}>
+          {!failed && (
+            <View style={styles.codeBox}>
+              <Text style={styles.codeLabel}>Your order code</Text>
+              <Text style={styles.orderCode} selectable>{placed.code}</Text>
+            </View>
+          )}
+          <View style={styles.placedActions}>
+            {!failed && (
+              <Button mode="outlined" icon="map-marker-path" style={[uiStyles.btn, styles.outlinedBtn]} contentStyle={uiStyles.btnContent} labelStyle={uiStyles.btnLabel} onPress={() => navigation.navigate('Track')}>
+                Track My Order
+              </Button>
+            )}
+            <Button mode="contained" style={uiStyles.btn} contentStyle={uiStyles.btnContent} labelStyle={uiStyles.btnLabel} onPress={() => { setPlaced(null); navigation.navigate('Services'); }}>
+              {failed ? 'Back to cart' : 'Place another order'}
+            </Button>
+          </View>
+        </EmptyState>
       </View>
     );
   }
 
   if (!lines.length) {
     return (
-      <View style={styles.placedBox}>
-        <Text style={styles.emptyText}>Your cart is empty.</Text>
-        <Button mode="contained" style={{ marginTop: 16 }} onPress={() => navigation.navigate('Services')}>Browse services</Button>
+      <View style={styles.centerScreen}>
+        <EmptyState icon="basket-outline" title="Your cart is empty." message="Add items from our services to schedule a pickup.">
+          <Button mode="contained" icon="washing-machine" style={[uiStyles.btn, styles.emptyBtn]} contentStyle={uiStyles.btnContent} labelStyle={uiStyles.btnLabel} onPress={() => navigation.navigate('Services')}>
+            Browse services
+          </Button>
+        </EmptyState>
       </View>
     );
   }
@@ -176,15 +196,21 @@ export default function CartScreen({ navigation }) {
   // prompt instead of the checkout form until that's true.
   if (!isLoadingAuth && !isAuthenticated) {
     return (
-      <View style={styles.flex}>
-        <View style={styles.content}>
-          <CartLines splitLines={splitLines} changeQty={changeQty} removeLine={removeLine} />
-        </View>
-        <View style={styles.loginGate}>
-          <Text variant="titleMedium" style={styles.navy}>Log in to place your order</Text>
-          <Text style={[styles.dim, { textAlign: 'center', marginTop: 4 }]}>Your cart is saved — log in or create an account to check out.</Text>
-          <Button mode="contained" style={{ marginTop: 16, width: '100%' }} onPress={() => navigation.navigate('Login', { next: 'Cart' })}>Log In</Button>
-          <Button mode="text" onPress={() => navigation.navigate('Signup', { next: 'Cart' })}>Create an account</Button>
+      <View style={uiStyles.screen}>
+        <ScrollView contentContainerStyle={styles.content}>
+          <SurfaceCard>
+            <StepHeader icon="basket-outline" title="Your items" />
+            <CartLines splitLines={splitLines} changeQty={changeQty} removeLine={removeLine} />
+          </SurfaceCard>
+        </ScrollView>
+        <View style={[styles.loginGate, { paddingBottom: spacing.xxl + insets.bottom }]}>
+          <IconTile icon="account-lock-outline" size={48} tone="navy" />
+          <Text style={[type.h2, styles.gateTitle]}>Log in to place your order</Text>
+          <Text style={[type.small, styles.centerText]}>Your cart is saved — log in or create an account to check out.</Text>
+          <Button mode="contained" style={[uiStyles.btn, styles.gateBtn]} contentStyle={uiStyles.btnContent} labelStyle={uiStyles.btnLabel} onPress={() => navigation.navigate('Login', { next: 'Cart' })}>
+            Log In
+          </Button>
+          <Button mode="text" textColor={colors.cyanDark} onPress={() => navigation.navigate('Signup', { next: 'Cart' })}>Create an account</Button>
         </View>
       </View>
     );
@@ -192,39 +218,50 @@ export default function CartScreen({ navigation }) {
 
   return (
     <KeyboardAwareScrollView
-      style={styles.flex}
+      style={uiStyles.screen}
       contentContainerStyle={{ ...styles.content, paddingBottom: 24 + insets.bottom }}
       keyboardShouldPersistTaps="handled"
       enableOnAndroid
       extraScrollHeight={20}
       keyboardOpeningTime={0}>
-      <CartLines splitLines={splitLines} changeQty={changeQty} removeLine={removeLine} />
-
-      <View style={styles.formSection}>
+      <SurfaceCard>
+        <StepHeader icon="basket-outline" title="Your items" />
+        <CartLines splitLines={splitLines} changeQty={changeQty} removeLine={removeLine} />
         {membership && (
-          <Text style={styles.membershipNote}>
-            {membership.bookings_used}/{membership.bookings_allowed} bookings · {membership.items_used}/{membership.items_allowed} items used this month
-          </Text>
-        )}
-
-        <View style={styles.row}>
-          <Text style={styles.dim}>Subtotal</Text>
-          <Text style={styles.navyBold}>{total} QAR</Text>
-        </View>
-        {planSavings > 0 && (
-          <View style={styles.row}>
-            <Text style={styles.savingsText}>Plan savings</Text>
-            <Text style={styles.savingsText}>-{planSavings} QAR</Text>
+          <View style={styles.membershipNote}>
+            <Icon source="crown" size={14} color={colors.success} />
+            <Text style={styles.membershipText}>
+              {membership.bookings_used}/{membership.bookings_allowed} bookings · {membership.items_used}/{membership.items_allowed} items used this month
+            </Text>
           </View>
         )}
+      </SurfaceCard>
 
-        <View style={styles.rowGap}>
-          <Button mode={form.pickup_type === 'pickup' ? 'contained' : 'outlined'} onPress={() => update('pickup_type', 'pickup')} style={{ flex: 1 }}>Pickup</Button>
-          <Button mode={form.pickup_type === 'drop' ? 'contained' : 'outlined'} onPress={() => update('pickup_type', 'drop')} style={{ flex: 1 }}>Drop at shop</Button>
+      <SurfaceCard style={styles.section}>
+        <StepHeader icon="calendar-clock" title="Pickup schedule" />
+
+        <View style={styles.segment}>
+          {[
+            { key: 'pickup', label: 'Pickup', icon: 'truck-outline' },
+            { key: 'drop', label: 'Drop at shop', icon: 'storefront-outline' },
+          ].map((opt) => {
+            const active = form.pickup_type === opt.key;
+            return (
+              <Pressable
+                key={opt.key}
+                onPress={() => update('pickup_type', opt.key)}
+                style={[styles.segmentItem, active && styles.segmentItemActive]}
+                accessibilityRole="button"
+                accessibilityState={active ? { selected: true } : {}}>
+                <Icon source={opt.icon} size={18} color={active ? '#fff' : colors.textMuted} />
+                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{opt.label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         <Pressable onPress={() => setShowDatePicker(true)}>
-          <AppTextInput label="Delivery date" value={form.pickup_date} editable={false} mode="outlined" right={<AppTextInput.Icon icon="calendar" />} style={styles.input} />
+          <AppTextInput label="Delivery date" value={form.pickup_date} editable={false} placeholder="Select a date" left={<AppTextInput.Icon icon="calendar" />} style={styles.input} />
         </Pressable>
         {isPastDate && <Text style={styles.error}>Pick today or a future date.</Text>}
         {showDatePicker && (
@@ -239,63 +276,104 @@ export default function CartScreen({ navigation }) {
           />
         )}
 
-        <Menu
-          visible={slotMenuOpen}
-          onDismiss={() => setSlotMenuOpen(false)}
-          anchor={
-            <Pressable onPress={() => setSlotMenuOpen(true)}>
-              <AppTextInput label="Slot" value={form.pickup_slot} editable={false} mode="outlined" right={<AppTextInput.Icon icon="clock-outline" />} style={styles.input} />
-            </Pressable>
-          }>
-          {SLOTS.map((s) => <Menu.Item key={s} title={s} onPress={() => { update('pickup_slot', s); setSlotMenuOpen(false); }} />)}
-        </Menu>
+        <Text style={styles.fieldLabel}>Time slot</Text>
+        <View style={styles.slotGrid}>
+          {SLOTS.map((slot) => {
+            const active = form.pickup_slot === slot;
+            return (
+              <Pressable
+                key={slot}
+                onPress={() => update('pickup_slot', slot)}
+                style={[styles.slot, active && styles.slotActive]}
+                accessibilityRole="button"
+                accessibilityState={active ? { selected: true } : {}}>
+                <Text style={[styles.slotText, active && styles.slotTextActive]}>{slot}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </SurfaceCard>
 
-        <AppTextInput label="Full name" value={form.customer_name} onChangeText={(t) => update('customer_name', t)} mode="outlined" style={styles.input} />
-        <AppTextInput label="Phone number" value={form.customer_phone} onChangeText={(t) => update('customer_phone', t)} keyboardType="phone-pad" mode="outlined" style={styles.input} />
+      <SurfaceCard style={styles.section}>
+        <StepHeader icon="account-outline" title="Contact details" />
+        <AppTextInput label="Full name" value={form.customer_name} onChangeText={(t) => update('customer_name', t)} left={<AppTextInput.Icon icon="account-outline" />} style={styles.input} />
+        <AppTextInput label="Phone number" value={form.customer_phone} onChangeText={(t) => update('customer_phone', t)} keyboardType="phone-pad" left={<AppTextInput.Icon icon="phone-outline" />} style={styles.input} />
+      </SurfaceCard>
 
-        {form.pickup_type === 'pickup' && (
-          <View>
-            {addresses.length > 0 && !addingAddress && (
-              <Menu
-                visible={addrMenuOpen}
-                onDismiss={() => setAddrMenuOpen(false)}
-                anchor={
-                  <Pressable onPress={() => setAddrMenuOpen(true)}>
-                    <AppTextInput label="Address" value={form.address} editable={false} multiline numberOfLines={2} mode="outlined" style={styles.input} />
+      {form.pickup_type === 'pickup' && (
+        <SurfaceCard style={styles.section}>
+          <StepHeader icon="map-marker-outline" title="Pickup address" />
+          {addresses.length > 0 && !addingAddress && (
+            <View style={styles.addrList}>
+              {addresses.map((a) => {
+                const active = form.address === a.address_text;
+                return (
+                  <Pressable
+                    key={a.id}
+                    onPress={() => selectAddress(a)}
+                    style={[styles.addrCard, active && styles.addrCardActive]}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: active }}>
+                    <Icon source={active ? 'radiobox-marked' : 'radiobox-blank'} size={20} color={active ? colors.cyanDark : colors.textFaint} />
+                    <View style={styles.flex}>
+                      <View style={styles.addrHead}>
+                        <Text style={styles.addrLabel}>{a.label || 'Address'}</Text>
+                        {a.is_default && <Text style={styles.defaultTag}>Default</Text>}
+                      </View>
+                      <Text style={styles.dim} numberOfLines={2}>{a.address_text}</Text>
+                    </View>
                   </Pressable>
-                }>
-                {addresses.map((a) => (
-                  <Menu.Item key={a.id} title={`${a.label ? a.label + ' — ' : ''}${a.address_text.slice(0, 40)}${a.is_default ? ' (default)' : ''}`} onPress={() => selectAddress(a)} />
-                ))}
-                <Menu.Item title="+ Add new address" onPress={() => { setAddrMenuOpen(false); setAddingAddress(true); }} />
-              </Menu>
-            )}
-            {(addingAddress || addresses.length === 0) && (
-              <View style={styles.dashedBox}>
-                <AppTextInput label="Label (e.g. Home, Office)" value={newAddress.label} onChangeText={(t) => setNewAddress((f) => ({ ...f, label: t }))} mode="outlined" style={styles.input} />
-                <AppTextInput label="Full address" value={newAddress.address_text} onChangeText={(t) => setNewAddress((f) => ({ ...f, address_text: t }))} multiline numberOfLines={2} mode="outlined" style={styles.input} />
-                <View style={styles.rowGap}>
-                  <Button mode="contained" onPress={saveNewAddress} style={{ flex: 1 }}>Save & use</Button>
-                  {addresses.length > 0 && <Button mode="outlined" onPress={() => setAddingAddress(false)}>Cancel</Button>}
-                </View>
+                );
+              })}
+              <Button mode="text" icon="plus" textColor={colors.cyanDark} style={styles.addAddrBtn} onPress={() => setAddingAddress(true)}>
+                Add new address
+              </Button>
+            </View>
+          )}
+          {(addingAddress || addresses.length === 0) && (
+            <View style={styles.dashedBox}>
+              <AppTextInput label="Label (e.g. Home, Office)" value={newAddress.label} onChangeText={(t) => setNewAddress((f) => ({ ...f, label: t }))} left={<AppTextInput.Icon icon="tag-outline" />} style={styles.input} />
+              <AppTextInput label="Full address" value={newAddress.address_text} onChangeText={(t) => setNewAddress((f) => ({ ...f, address_text: t }))} multiline numberOfLines={2} left={<AppTextInput.Icon icon="map-marker-outline" />} style={styles.input} />
+              <View style={styles.rowGap}>
+                <Button mode="contained" onPress={saveNewAddress} style={[uiStyles.btn, styles.flex]}>Save & use</Button>
+                {addresses.length > 0 && <Button mode="outlined" style={uiStyles.btn} onPress={() => setAddingAddress(false)}>Cancel</Button>}
               </View>
-            )}
-          </View>
-        )}
-        <AppTextInput label="Notes (optional)" value={form.notes} onChangeText={(t) => update('notes', t)} multiline numberOfLines={2} mode="outlined" style={styles.input} />
-      </View>
+            </View>
+          )}
+        </SurfaceCard>
+      )}
+
+      <SurfaceCard style={styles.section}>
+        <StepHeader icon="note-text-outline" title="Notes" />
+        <AppTextInput label="Notes (optional)" value={form.notes} onChangeText={(t) => update('notes', t)} multiline numberOfLines={2} style={styles.input} />
+      </SurfaceCard>
 
       <View style={styles.footer}>
         <View style={styles.row}>
-          <Text style={styles.navyBold}>Total</Text>
+          <Text style={styles.footerDim}>Subtotal</Text>
+          <Text style={styles.footerValue}>{total} QAR</Text>
+        </View>
+        {planSavings > 0 && (
+          <View style={styles.row}>
+            <Text style={styles.savingsText}>Plan savings</Text>
+            <Text style={styles.savingsText}>-{planSavings} QAR</Text>
+          </View>
+        )}
+        <View style={[styles.row, styles.totalRow]}>
+          <Text style={styles.totalLabel}>Total</Text>
           <Text style={styles.totalText}>{billedTotal} QAR</Text>
         </View>
         <Button
           mode="contained"
+          icon="check-circle-outline"
           onPress={submit}
           loading={submitting}
           disabled={submitting || !form.customer_name || !form.customer_phone || isPastDate}
-          style={{ marginTop: 8 }}>
+          buttonColor={colors.cyan}
+          textColor={colors.navy}
+          style={[uiStyles.btn, styles.confirmBtn]}
+          contentStyle={uiStyles.btnContent}
+          labelStyle={uiStyles.btnLabel}>
           {submitting ? 'Placing order…' : `Confirm Order · ${billedTotal} QAR`}
         </Button>
       </View>
@@ -304,25 +382,69 @@ export default function CartScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#f8fafc' },
-  content: { padding: 16, paddingBottom: 24 },
-  navy: { color: NAVY, fontWeight: '700' },
-  navyBold: { color: NAVY, fontWeight: '600' },
-  dim: { color: '#64748b', fontSize: 12 },
-  rowGap: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
-  emptyText: { textAlign: 'center', color: '#94a3b8', fontSize: 15 },
-  lineRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 10, marginBottom: 8 },
-  freeText: { color: '#059669', fontSize: 11, fontWeight: '600', marginTop: 2 },
-  formSection: { borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 12, marginTop: 8 },
-  membershipNote: { backgroundColor: '#d1fae5', color: '#047857', fontSize: 11, borderRadius: 10, padding: 10 },
-  savingsText: { color: '#059669', fontWeight: '600', fontSize: 12 },
-  input: { marginTop: 10, backgroundColor: '#fff' },
-  error: { color: '#dc2626', fontSize: 11, marginTop: 4 },
-  dashedBox: { borderWidth: 1, borderStyle: 'dashed', borderColor: '#cbd5e1', borderRadius: 12, padding: 10, marginTop: 10 },
-  footer: { borderTopWidth: 1, borderTopColor: '#e2e8f0', padding: 16, marginTop: 16, backgroundColor: '#fff', borderRadius: 16 },
-  totalText: { fontSize: 20, fontWeight: '700', color: GOLD },
-  placedBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  orderCode: { fontSize: 28, fontWeight: '700', color: GOLD, marginTop: 4, letterSpacing: 1 },
-  loginGate: { padding: 24, alignItems: 'center', borderTopWidth: 1, borderTopColor: '#e2e8f0', backgroundColor: '#fff' },
+  flex: { flex: 1 },
+  centerScreen: { flex: 1, justifyContent: 'center', backgroundColor: colors.bg },
+  centerText: { textAlign: 'center', marginTop: 4 },
+  content: { padding: spacing.lg, paddingBottom: 24 },
+  section: { marginTop: spacing.md },
+  dim: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  rowGap: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 4 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm },
+
+  stepHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: spacing.md },
+
+  lineRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
+  lineDivider: { borderTopWidth: 1, borderTopColor: colors.border },
+  lineName: { color: colors.navy, fontWeight: '700', fontSize: 14 },
+  freeText: { color: colors.success, fontSize: 12, fontWeight: '700', marginTop: 2 },
+  stepper: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceMuted, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border },
+  stepBtn: { margin: 0, width: 28, height: 28 },
+  stepValue: { color: colors.navy, fontWeight: '800', minWidth: 16, textAlign: 'center' },
+  trash: { margin: 0 },
+  membershipNote: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.successSoft, borderRadius: radius.md, padding: 10, marginTop: spacing.sm },
+  membershipText: { color: colors.success, fontSize: 12, fontWeight: '600', flex: 1 },
+
+  segment: { flexDirection: 'row', backgroundColor: colors.surfaceMuted, borderRadius: radius.md, padding: 4, borderWidth: 1, borderColor: colors.border, marginBottom: spacing.md },
+  segmentItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 9 },
+  segmentItemActive: { backgroundColor: colors.navy },
+  segmentText: { fontSize: 13, fontWeight: '700', color: colors.textMuted },
+  segmentTextActive: { color: '#fff' },
+
+  input: { marginTop: 0, marginBottom: spacing.md },
+  error: { color: colors.error, fontSize: 12, marginTop: -6, marginBottom: spacing.sm },
+  fieldLabel: { fontSize: 12, fontWeight: '700', color: colors.textMuted, marginBottom: spacing.sm },
+  slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  slot: { width: '48.5%', flexGrow: 1, paddingVertical: 11, borderRadius: radius.md, borderWidth: 1.2, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center' },
+  slotActive: { borderColor: colors.cyanDark, backgroundColor: colors.cyanSoft },
+  slotText: { fontSize: 13, fontWeight: '600', color: colors.textBody },
+  slotTextActive: { color: colors.navy, fontWeight: '800' },
+
+  addrList: { gap: spacing.sm },
+  addrCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: spacing.md, borderRadius: radius.md, borderWidth: 1.2, borderColor: colors.border, backgroundColor: colors.surface },
+  addrCardActive: { borderColor: colors.cyanDark, backgroundColor: colors.cyanSoft },
+  addrHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  addrLabel: { color: colors.navy, fontWeight: '700', fontSize: 14 },
+  defaultTag: { fontSize: 10, fontWeight: '700', color: colors.success, backgroundColor: colors.successSoft, borderRadius: radius.pill, paddingHorizontal: 6, paddingVertical: 1, overflow: 'hidden' },
+  addAddrBtn: { alignSelf: 'flex-start' },
+  dashedBox: { borderWidth: 1.2, borderStyle: 'dashed', borderColor: colors.borderStrong, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.xs },
+
+  footer: { backgroundColor: colors.navy, borderRadius: radius.xl, padding: spacing.xl, marginTop: spacing.lg, ...shadow.raised },
+  footerDim: { color: colors.onDarkMuted, fontSize: 13 },
+  footerValue: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  savingsText: { color: '#6EE7B7', fontWeight: '700', fontSize: 13 },
+  totalRow: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)', paddingTop: spacing.md, marginTop: spacing.md },
+  totalLabel: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  totalText: { fontSize: 24, fontWeight: '800', color: colors.gold },
+  confirmBtn: { marginTop: spacing.lg },
+
+  codeBox: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed', paddingVertical: spacing.lg, paddingHorizontal: spacing.xxl, marginTop: spacing.xl },
+  codeLabel: { ...type.caption },
+  orderCode: { fontSize: 28, fontWeight: '800', color: colors.navy, marginTop: 4, letterSpacing: 1.5 },
+  placedActions: { alignSelf: 'stretch', gap: spacing.md, marginTop: spacing.xxl },
+  outlinedBtn: { borderColor: colors.navy, borderWidth: 1.2 },
+  emptyBtn: { marginTop: spacing.xxl, alignSelf: 'stretch' },
+
+  loginGate: { padding: spacing.xxl, alignItems: 'center', backgroundColor: colors.surface, borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, ...shadow.raised },
+  gateTitle: { marginTop: spacing.md, textAlign: 'center' },
+  gateBtn: { marginTop: spacing.lg, alignSelf: 'stretch' },
 });

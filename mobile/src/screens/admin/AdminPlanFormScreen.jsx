@@ -5,12 +5,13 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppTextInput from '../../components/AppTextInput';
 import { api } from '../../api/client';
+import { colors, shadow } from '../../theme/tokens';
 
 const EMPTY_FORM = {
   name: '', slug: '', tagline: '', price: '0', currency: 'QAR', period: 'month',
   bookings_per_month: '0', eligible_items: '0', features: '', is_vip: false, popular: false, active: true,
 };
-const NAVY = '#0E2346';
+const NAVY = colors.navy;
 
 // Toggling one row used to re-render every row in the list (up to ~200 for
 // items) since they were all inline JSX in a single big component — each tap
@@ -158,7 +159,7 @@ export default function AdminPlanFormScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#f8fafc' },
+  flex: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 28 },
   input: { marginTop: 10 },
   dim: { color: '#94a3b8', fontSize: 11 },

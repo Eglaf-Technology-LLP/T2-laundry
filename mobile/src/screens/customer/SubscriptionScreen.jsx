@@ -1,37 +1,74 @@
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
-import { Text, Button, Portal, Modal, ActivityIndicator } from 'react-native-paper';
+import { Text, Button, Portal, Modal, ActivityIndicator, Icon } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../api/client';
 
-const NAVY = '#0E2346';
-const GOLD = '#D4AF37';
+import { ErrorBanner, IconTile, uiStyles } from '../../components/ui';
+import { colors, radius, shadow, spacing, type } from '../../theme/tokens';
+
+const PERKS = [
+  { icon: 'truck-fast-outline', label: 'Free pickup' },
+  { icon: 'lightning-bolt-outline', label: 'Priority' },
+  { icon: 'map-marker-path', label: 'Live tracking' },
+];
 
 function PlanCard({ plan, isCurrent, isUpgrade, submitting, onSubscribe, onViewItems }) {
   const featured = plan.popular;
   return (
-    <View style={[styles.planCard, featured && styles.planCardFeatured]}>
-      {featured && <Text style={styles.bestValue}>Best Value</Text>}
+    <View style={[styles.planCard, featured && styles.planCardFeatured, isCurrent && !featured && styles.planCardCurrent]}>
+      <View style={styles.planHead}>
+        <IconTile icon={featured ? 'crown' : 'crown-outline'} size={44} tone={featured ? 'gold' : 'navy'} />
+        {featured && (
+          <View style={styles.bestValue}>
+            <Icon source="star" size={11} color={colors.navy} />
+            <Text style={styles.bestValueText}>Best Value</Text>
+          </View>
+        )}
+      </View>
       <Text style={[styles.planName, featured && styles.textWhite]}>{plan.name}</Text>
       <Text style={[styles.planTagline, featured && styles.textWhiteDim]}>{plan.tagline}</Text>
       <View style={styles.priceRow}>
         <Text style={[styles.planPrice, featured && styles.gold]}>{plan.price}</Text>
         <Text style={[styles.planPeriod, featured && styles.textWhiteDim]}>QAR / {plan.period}</Text>
       </View>
+      <View style={[styles.divider, featured && styles.dividerDark]} />
       <View style={styles.featuresList}>
         {(plan.features || []).map((f, i) => (
-          <Text key={i} style={[styles.feature, featured && styles.textWhiteDim2]}>✓ {f}</Text>
+          <View key={i} style={styles.featureRow}>
+            <View style={[styles.check, featured && styles.checkFeatured]}>
+              <Icon source="check" size={12} color={featured ? colors.navy : colors.cyanDark} />
+            </View>
+            <Text style={[styles.feature, featured && styles.textWhiteDim2]}>{f}</Text>
+          </View>
         ))}
       </View>
       {isCurrent ? (
-        <View style={styles.currentBadge}><Text style={[styles.navyBold, featured && styles.textWhite]}>Your current plan</Text></View>
+        <View style={[styles.currentBadge, featured && styles.currentBadgeFeatured]}>
+          <Icon source="check-decagram" size={18} color={featured ? colors.gold : colors.success} />
+          <Text style={[styles.currentText, featured && styles.textWhite]}>Your current plan</Text>
+        </View>
       ) : (
-        <Button mode="contained" loading={submitting} disabled={submitting} onPress={onSubscribe} buttonColor={featured ? '#fff' : NAVY} textColor={featured ? NAVY : '#fff'}>
+        <Button
+          mode="contained"
+          loading={submitting}
+          disabled={submitting}
+          onPress={onSubscribe}
+          buttonColor={featured ? colors.gold : colors.navy}
+          textColor={featured ? colors.navy : '#fff'}
+          style={uiStyles.btn}
+          contentStyle={uiStyles.btnContent}
+          labelStyle={uiStyles.btnLabel}>
           {submitting ? (isUpgrade ? 'Upgrading…' : 'Subscribing…') : (isUpgrade ? 'Upgrade to This Plan' : 'Subscribe Now')}
         </Button>
       )}
-      <Button mode="outlined" style={{ marginTop: 8 }} textColor={featured ? '#fff' : NAVY} onPress={onViewItems}>
+      <Button
+        mode="text"
+        icon="format-list-bulleted"
+        style={styles.viewItems}
+        textColor={featured ? '#fff' : colors.cyanDark}
+        onPress={onViewItems}>
         View Items
       </Button>
     </View>
@@ -124,21 +161,34 @@ export default function SubscriptionScreen({ navigation, route }) {
   );
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.eyebrow}>Membership Plans</Text>
-      <Text variant="headlineMedium" style={styles.title}>One membership. Limitless care.</Text>
-      <Text style={styles.subtitle}>Free pickup & delivery, priority booking and real-time tracking on every tier.</Text>
+    <ScrollView style={uiStyles.screen} contentContainerStyle={styles.container}>
+      <View style={styles.hero}>
+        <Text style={[type.caption, styles.eyebrow]}>Membership Plans</Text>
+        <Text style={styles.title}>One membership.{'\n'}Limitless care.</Text>
+        <Text style={styles.subtitle}>Free pickup & delivery, priority booking and real-time tracking on every tier.</Text>
+        <View style={styles.perks}>
+          {PERKS.map((p) => (
+            <View key={p.label} style={styles.perk}>
+              <Icon source={p.icon} size={18} color={colors.cyan} />
+              <Text style={styles.perkText}>{p.label}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
 
-      {!!error && <Text style={styles.error}>{error}</Text>}
+      <ErrorBanner message={error} style={styles.error} />
 
       {(justSubscribed || myMembership) && (
         <View style={styles.statusBanner}>
-          <Text style={styles.navyBold}>You're on the {myMembership?.plan_name || justSubscribed} plan</Text>
-          <Text style={styles.dim}>{myMembership?.payment_status === 'paid' ? 'Payment confirmed.' : "Payment pending — we'll follow up to confirm billing."}</Text>
+          <IconTile icon="check-decagram" size={40} tone="green" />
+          <View style={styles.flex}>
+            <Text style={styles.navyBold}>You're on the {myMembership?.plan_name || justSubscribed} plan</Text>
+            <Text style={styles.dim}>{myMembership?.payment_status === 'paid' ? 'Payment confirmed.' : "Payment pending — we'll follow up to confirm billing."}</Text>
+          </View>
         </View>
       )}
 
-      {!plans.length && <ActivityIndicator style={{ marginTop: 40 }} />}
+      {!plans.length && <ActivityIndicator style={styles.loader} color={colors.navy} />}
 
       <View style={styles.plansWrap}>
         {plans.map((plan) => (
@@ -158,15 +208,18 @@ export default function SubscriptionScreen({ navigation, route }) {
         <Modal visible={!!confirmation} onDismiss={() => setConfirmation(null)} contentContainerStyle={styles.modal}>
           {confirmation && (
             <>
-              <Text variant="titleLarge" style={styles.navy}>Payment successful!</Text>
-              <Text style={[styles.dim, { marginTop: 8 }]}>
+              <View style={styles.modalIcon}>
+                <IconTile icon="check-circle-outline" size={56} tone="green" />
+              </View>
+              <Text style={[type.h1, styles.centerText]}>Payment successful!</Text>
+              <Text style={[styles.dim, styles.modalLead]}>
                 You're now on the {confirmation.plan.name} plan — {confirmation.plan.price} {confirmation.plan.currency}/{confirmation.plan.period}.
               </Text>
-              <Text style={[styles.navyBold, { marginTop: 16 }]}>Included items</Text>
+              <Text style={[styles.navyBold, styles.modalSection]}>Included items</Text>
               {confirmation.items.length ? confirmation.items.map((i) => <Text key={i.id} style={styles.dim}>• {i.name}</Text>) : <Text style={styles.dim}>Not set up yet.</Text>}
-              <Text style={[styles.navyBold, { marginTop: 12 }]}>Included services</Text>
+              <Text style={[styles.navyBold, styles.modalSection]}>Included services</Text>
               {confirmation.services.length ? confirmation.services.map((s) => <Text key={s.id} style={styles.dim}>• {s.name}</Text>) : <Text style={styles.dim}>Not set up yet.</Text>}
-              <Button mode="contained" style={{ marginTop: 20 }} onPress={() => setConfirmation(null)}>Got it</Button>
+              <Button mode="contained" style={[uiStyles.btn, styles.modalBtn]} contentStyle={uiStyles.btnContent} labelStyle={uiStyles.btnLabel} onPress={() => setConfirmation(null)}>Got it</Button>
             </>
           )}
         </Modal>
@@ -176,30 +229,51 @@ export default function SubscriptionScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, paddingBottom: 40, backgroundColor: '#f8fafc' },
-  eyebrow: { fontSize: 11, color: GOLD, textAlign: 'center', textTransform: 'uppercase', letterSpacing: 1 },
-  title: { textAlign: 'center', color: NAVY, fontWeight: '700', marginTop: 10 },
-  subtitle: { textAlign: 'center', color: '#64748b', marginTop: 10 },
-  error: { color: '#dc2626', textAlign: 'center', marginTop: 12 },
-  statusBanner: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginTop: 16 },
-  navyBold: { color: NAVY, fontWeight: '700' },
-  navy: { color: NAVY, fontWeight: '700' },
-  dim: { color: '#64748b', fontSize: 12, marginTop: 2 },
-  plansWrap: { marginTop: 24, gap: 16 },
-  planCard: { borderRadius: 24, padding: 20, backgroundColor: '#fff', elevation: 1 },
-  planCardFeatured: { backgroundColor: NAVY },
-  bestValue: { alignSelf: 'flex-end', backgroundColor: GOLD, color: NAVY, fontSize: 10, fontWeight: '700', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, marginBottom: 4 },
-  planName: { fontSize: 20, fontWeight: '700', color: NAVY },
-  planTagline: { fontSize: 12, color: '#64748b', marginTop: 4 },
-  priceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginTop: 14 },
-  planPrice: { fontSize: 32, fontWeight: '700', color: NAVY },
-  gold: { color: GOLD },
-  planPeriod: { fontSize: 11, color: '#94a3b8', marginBottom: 4 },
-  featuresList: { marginTop: 16, gap: 6 },
-  feature: { fontSize: 13, color: '#475569' },
-  currentBadge: { backgroundColor: '#f1f5f9', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginBottom: 8 },
+  flex: { flex: 1 },
+  centerText: { textAlign: 'center' },
+  container: { padding: spacing.lg, paddingBottom: 40 },
+  hero: { backgroundColor: colors.navy, borderRadius: radius.xxl, padding: spacing.xxl, ...shadow.raised },
+  eyebrow: { color: colors.gold },
+  title: { color: '#fff', fontSize: 26, lineHeight: 32, fontWeight: '800', marginTop: spacing.sm },
+  subtitle: { color: colors.onDarkMuted, fontSize: 13, lineHeight: 19, marginTop: spacing.sm },
+  perks: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
+  perk: { flex: 1, alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: radius.md, paddingVertical: 10 },
+  perkText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  error: { marginTop: spacing.md },
+  loader: { marginTop: 40 },
+  statusBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, marginTop: spacing.lg, borderWidth: 1, borderColor: colors.successSoft, ...shadow.card },
+  navyBold: { color: colors.navy, fontWeight: '700', fontSize: 14 },
+  dim: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  plansWrap: { marginTop: spacing.xl, gap: spacing.lg },
+  planCard: { borderRadius: radius.xxl, padding: spacing.xl, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, ...shadow.card },
+  planCardFeatured: { backgroundColor: colors.navy, borderColor: colors.gold, borderWidth: 1.5, ...shadow.raised },
+  planCardCurrent: { borderColor: colors.success, borderWidth: 1.5 },
+  planHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md },
+  bestValue: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.gold, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
+  bestValueText: { color: colors.navy, fontSize: 11, fontWeight: '800' },
+  planName: { fontSize: 22, fontWeight: '800', color: colors.navy },
+  planTagline: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
+  priceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginTop: spacing.lg },
+  planPrice: { fontSize: 36, lineHeight: 40, fontWeight: '800', color: colors.navy },
+  gold: { color: colors.gold },
+  planPeriod: { fontSize: 12, color: colors.textFaint, marginBottom: 6, fontWeight: '600' },
+  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.lg },
+  dividerDark: { backgroundColor: 'rgba(255,255,255,0.12)' },
+  featuresList: { gap: 10, marginBottom: spacing.xl },
+  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  check: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.cyanSoft, alignItems: 'center', justifyContent: 'center' },
+  checkFeatured: { backgroundColor: colors.gold },
+  feature: { fontSize: 13, color: colors.textBody, flex: 1 },
+  currentBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.successSoft, borderRadius: radius.md, paddingVertical: 14 },
+  currentBadgeFeatured: { backgroundColor: 'rgba(255,255,255,0.1)' },
+  currentText: { color: colors.success, fontWeight: '800' },
+  viewItems: { marginTop: spacing.sm },
   textWhite: { color: '#fff' },
-  textWhiteDim: { color: 'rgba(255,255,255,0.7)' },
-  textWhiteDim2: { color: 'rgba(255,255,255,0.85)' },
-  modal: { backgroundColor: '#fff', margin: 24, padding: 20, borderRadius: 16 },
+  textWhiteDim: { color: colors.onDarkMuted },
+  textWhiteDim2: { color: 'rgba(255,255,255,0.88)' },
+  modal: { backgroundColor: colors.surface, margin: spacing.xxl, padding: spacing.xxl, borderRadius: radius.xxl },
+  modalIcon: { alignItems: 'center', marginBottom: spacing.md },
+  modalLead: { marginTop: spacing.sm, textAlign: 'center', fontSize: 13 },
+  modalSection: { marginTop: spacing.lg, marginBottom: 4 },
+  modalBtn: { marginTop: spacing.xl },
 });

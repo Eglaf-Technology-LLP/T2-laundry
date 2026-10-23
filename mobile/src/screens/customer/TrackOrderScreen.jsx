@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
-import { Text, Button, ActivityIndicator, Card } from 'react-native-paper';
+import { Text, Button, ActivityIndicator, Icon } from 'react-native-paper';
 import AppTextInput from '../../components/AppTextInput';
 import { api } from '../../api/client';
+import { ErrorBanner, IconTile, StatusPill, SurfaceCard, uiStyles } from '../../components/ui';
+import { colors, radius, spacing, type, ORDER_STATUS } from '../../theme/tokens';
 
 const STAGES = [
   { key: 'pending', label: 'Order Placed' },
@@ -38,105 +40,157 @@ export default function TrackOrderScreen() {
   const currentIndex = order ? STAGES.findIndex((s) => s.key === order.status) : -1;
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text variant="headlineMedium" style={styles.title}>Track your order</Text>
-      <Text variant="bodyMedium" style={styles.subtitle}>Enter your order code to follow your garment's journey</Text>
+    <ScrollView style={uiStyles.screen} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <SurfaceCard style={styles.searchCard}>
+        <View style={styles.searchHead}>
+          <IconTile icon="map-marker-path" size={48} />
+          <View style={styles.flex}>
+            <Text style={type.h2}>Track your order</Text>
+            <Text style={type.small}>Enter your order code to follow your garment's journey</Text>
+          </View>
+        </View>
 
-      <AppTextInput
-        label="Order code"
-        value={code}
-        onChangeText={setCode}
-        autoCapitalize="characters"
-        placeholder="e.g. T2-AB12CD"
-        style={styles.input}
-        right={<AppTextInput.Icon icon="magnify" onPress={track} />}
-        onSubmitEditing={track}
-      />
-      <Button mode="contained" onPress={track} loading={loading} disabled={loading || !code.trim()} style={styles.trackBtn}>
-        Track
-      </Button>
+        <AppTextInput
+          label="Order code"
+          value={code}
+          onChangeText={setCode}
+          autoCapitalize="characters"
+          placeholder="e.g. T2-AB12CD"
+          style={styles.input}
+          left={<AppTextInput.Icon icon="pound" />}
+          onSubmitEditing={track}
+          returnKeyType="search"
+        />
+        <Button
+          mode="contained"
+          icon="magnify"
+          onPress={track}
+          loading={loading}
+          disabled={loading || !code.trim()}
+          style={uiStyles.btn}
+          contentStyle={uiStyles.btnContent}
+          labelStyle={uiStyles.btnLabel}>
+          Track
+        </Button>
+        <ErrorBanner message={error} style={styles.error} />
+      </SurfaceCard>
 
-      {!!error && <Text style={styles.error}>{error}</Text>}
+      {loading && <ActivityIndicator style={styles.loader} color={colors.navy} />}
 
       {order && (
-        <Card style={styles.card}>
-          <Card.Content>
-            <View style={styles.row}>
-              <View>
-                <Text style={styles.label}>Order Code</Text>
-                <Text variant="titleLarge" style={styles.navy}>{order.order_code}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.label}>Total</Text>
-                <Text variant="titleLarge" style={styles.gold}>{order.total} {order.currency || 'QAR'}</Text>
+        <>
+          <View style={styles.summary}>
+            <View style={styles.flex}>
+              <Text style={styles.summaryLabel}>Order code</Text>
+              <Text style={styles.summaryCode}>{order.order_code}</Text>
+              <View style={styles.summaryPill}>
+                <StatusPill status={order.status} />
               </View>
             </View>
+            <View style={styles.summaryRight}>
+              <Text style={styles.summaryLabel}>Total</Text>
+              <Text style={styles.summaryTotal}>{order.total} {order.currency || 'QAR'}</Text>
+            </View>
+          </View>
 
-            <View style={styles.stages}>
-              {STAGES.map((s, i) => (
+          <SurfaceCard style={styles.section}>
+            <Text style={[type.h3, styles.sectionTitle]}>Order progress</Text>
+            {STAGES.map((s, i) => {
+              const done = i < currentIndex;
+              const current = i === currentIndex;
+              const reached = i <= currentIndex;
+              return (
                 <View key={s.key} style={styles.stageRow}>
-                  <View style={[styles.dot, i <= currentIndex && styles.dotActive]} />
-                  <Text style={[styles.stageLabel, i <= currentIndex && styles.navy]}>{s.label}</Text>
+                  <View style={styles.rail}>
+                    <View style={[styles.node, reached && styles.nodeReached, current && styles.nodeCurrent]}>
+                      <Icon source={done ? 'check' : ORDER_STATUS[s.key].icon} size={16} color={reached ? '#fff' : colors.textFaint} />
+                    </View>
+                    {i < STAGES.length - 1 && <View style={[styles.connector, i < currentIndex && styles.connectorDone]} />}
+                  </View>
+                  <View style={styles.stageBody}>
+                    <Text style={[styles.stageLabel, reached && styles.stageLabelReached]}>{s.label}</Text>
+                    {current && <Text style={styles.stageNow}>Current status</Text>}
+                  </View>
                 </View>
-              ))}
-            </View>
+              );
+            })}
+          </SurfaceCard>
 
-            <Text variant="titleSmall" style={[styles.navy, styles.sectionTitle]}>Items in this order</Text>
+          <SurfaceCard style={styles.section}>
+            <Text style={[type.h3, styles.sectionTitle]}>Items in this order</Text>
             {(order.items || []).map((it, i) => (
               <View key={i} style={styles.itemRow}>
-                <View>
-                  <Text style={styles.itemName}>{it.quantity}x {it.name}</Text>
+                <View style={styles.qtyBadge}>
+                  <Text style={styles.qtyText}>{it.quantity}x</Text>
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.itemName}>{it.name}</Text>
                   <Text style={styles.itemMeta}>{it.service} · {it.category}</Text>
                 </View>
-                <Text style={styles.gold}>{it.price * it.quantity} QAR</Text>
+                <Text style={styles.itemPrice}>{it.price * it.quantity} QAR</Text>
               </View>
             ))}
+          </SurfaceCard>
 
-            <View style={styles.metaGrid}>
-              <View style={styles.metaBox}>
-                <Text style={styles.label}>Pickup</Text>
-                <Text style={styles.metaValue}>{order.pickup_type} · {order.pickup_slot}</Text>
-                {!!order.pickup_date && <Text style={styles.itemMeta}>{order.pickup_date}</Text>}
-              </View>
-              <View style={styles.metaBox}>
-                <Text style={styles.label}>Customer</Text>
-                <Text style={styles.metaValue}>{order.customer_name}</Text>
-                <Text style={styles.itemMeta}>{order.customer_phone}</Text>
-              </View>
-            </View>
-          </Card.Content>
-        </Card>
+          <View style={styles.metaGrid}>
+            <SurfaceCard style={styles.metaBox}>
+              <IconTile icon="truck-outline" size={34} tone="navy" />
+              <Text style={[styles.summaryLabel, styles.metaLabel]}>Pickup</Text>
+              <Text style={styles.metaValue}>{order.pickup_type} · {order.pickup_slot}</Text>
+              {!!order.pickup_date && <Text style={styles.itemMeta}>{order.pickup_date}</Text>}
+            </SurfaceCard>
+            <SurfaceCard style={styles.metaBox}>
+              <IconTile icon="account-outline" size={34} tone="navy" />
+              <Text style={[styles.summaryLabel, styles.metaLabel]}>Customer</Text>
+              <Text style={styles.metaValue}>{order.customer_name}</Text>
+              <Text style={styles.itemMeta}>{order.customer_phone}</Text>
+            </SurfaceCard>
+          </View>
+        </>
       )}
-      {loading && <ActivityIndicator style={{ marginTop: 16 }} />}
     </ScrollView>
   );
 }
 
-const NAVY = '#0E2346';
-const GOLD = '#B08D2C';
-
 const styles = StyleSheet.create({
-  container: { padding: 20, paddingBottom: 40 },
-  title: { fontWeight: '700', textAlign: 'center', color: NAVY },
-  subtitle: { textAlign: 'center', color: '#64748b', marginTop: 6, marginBottom: 20 },
-  input: { marginBottom: 12 },
-  trackBtn: { marginBottom: 8 },
-  error: { color: '#dc2626', textAlign: 'center', marginTop: 8 },
-  card: { marginTop: 20, borderRadius: 16 },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  label: { fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
-  navy: { color: NAVY, fontWeight: '700' },
-  gold: { color: GOLD, fontWeight: '700' },
-  stages: { marginTop: 20, gap: 10 },
-  stageRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#e2e8f0' },
-  dotActive: { backgroundColor: NAVY },
-  stageLabel: { color: '#94a3b8', fontSize: 13 },
-  sectionTitle: { marginTop: 24, marginBottom: 8 },
-  itemRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, marginBottom: 8 },
-  itemName: { fontWeight: '600', color: NAVY, fontSize: 13 },
-  itemMeta: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
-  metaGrid: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  metaBox: { flex: 1, backgroundColor: '#f8fafc', borderRadius: 12, padding: 12 },
-  metaValue: { fontWeight: '600', fontSize: 13, marginTop: 2 },
+  flex: { flex: 1 },
+  container: { padding: spacing.lg, paddingBottom: 40 },
+  searchCard: { padding: spacing.xl },
+  searchHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
+  input: { marginBottom: spacing.md },
+  error: { marginTop: spacing.md },
+  loader: { marginTop: spacing.xxl },
+
+  summary: { flexDirection: 'row', backgroundColor: colors.navy, borderRadius: radius.xl, padding: spacing.xl, marginTop: spacing.lg },
+  summaryLabel: { fontSize: 10, fontWeight: '700', color: colors.onDarkMuted, textTransform: 'uppercase', letterSpacing: 0.8 },
+  summaryCode: { color: '#fff', fontSize: 22, fontWeight: '800', letterSpacing: 0.5, marginTop: 2 },
+  summaryPill: { marginTop: spacing.sm },
+  summaryRight: { alignItems: 'flex-end' },
+  summaryTotal: { color: colors.gold, fontSize: 20, fontWeight: '800', marginTop: 2 },
+
+  section: { marginTop: spacing.lg },
+  sectionTitle: { marginBottom: spacing.md },
+  stageRow: { flexDirection: 'row', gap: spacing.md },
+  rail: { alignItems: 'center', width: 34 },
+  node: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted, borderWidth: 1.5, borderColor: colors.border },
+  nodeReached: { backgroundColor: colors.navy, borderColor: colors.navy },
+  nodeCurrent: { backgroundColor: colors.cyanDark, borderColor: colors.cyanSoft, borderWidth: 4 },
+  connector: { width: 2, flex: 1, minHeight: 14, backgroundColor: colors.border, marginVertical: 2 },
+  connectorDone: { backgroundColor: colors.navy },
+  stageBody: { flex: 1, paddingTop: 7, paddingBottom: spacing.md },
+  stageLabel: { fontSize: 14, color: colors.textFaint, fontWeight: '600' },
+  stageLabelReached: { color: colors.navy, fontWeight: '700' },
+  stageNow: { fontSize: 11, color: colors.cyanDark, fontWeight: '700', marginTop: 2 },
+
+  itemRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surfaceMuted, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm },
+  qtyBadge: { minWidth: 36, height: 36, borderRadius: 10, backgroundColor: colors.cyanSoft, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  qtyText: { fontSize: 12, fontWeight: '800', color: colors.cyanDark },
+  itemName: { fontWeight: '700', color: colors.navy, fontSize: 14 },
+  itemMeta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  itemPrice: { fontWeight: '800', color: colors.navy, fontSize: 13 },
+
+  metaGrid: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
+  metaBox: { flex: 1 },
+  metaLabel: { color: colors.textFaint, marginTop: spacing.md },
+  metaValue: { fontWeight: '700', fontSize: 13, color: colors.navy, marginTop: 2, textTransform: 'capitalize' },
 });

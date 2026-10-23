@@ -5,11 +5,12 @@ import AppTextInput from '../../components/AppTextInput';
 import FilterScrollRow from '../../components/FilterScrollRow';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../../api/client';
+import { colors, shadow } from '../../theme/tokens';
 
 const EMPTY_CATEGORY = { name: '', slug: '', description: '', icon: 'Shirt' };
 const EMPTY_ITEM = { name: '', category: '', wash_price: '0', iron_price: '0', wash_iron_price: '0', dryclean_price: '0', popular: false };
-const NAVY = '#0E2346';
-const GOLD = '#D4AF37';
+const NAVY = colors.navy;
+const GOLD = colors.goldDark;
 
 export default function AdminItemsScreen() {
   const [items, setItems] = useState([]);
@@ -193,13 +194,13 @@ export default function AdminItemsScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#f8fafc' },
+  flex: { flex: 1, backgroundColor: colors.bg },
   filterBar: { padding: 12, backgroundColor: '#fff', gap: 8 },
   search: { backgroundColor: '#fff' },
   catRow: { flexDirection: 'row', alignItems: 'center' },
   chip: { backgroundColor: '#fff' },
   chipActive: { backgroundColor: NAVY },
-  itemCard: { backgroundColor: '#fff', borderRadius: 16, padding: 12, marginBottom: 10 },
+  itemCard: { backgroundColor: '#fff', borderRadius: 16, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: colors.border, ...shadow.card },
   itemCardInactive: { opacity: 0.6 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rowGap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -207,15 +208,15 @@ const styles = StyleSheet.create({
   navyBold: { color: NAVY, fontWeight: '600' },
   navy: { color: NAVY, fontWeight: '700' },
   dim: { color: '#94a3b8', fontSize: 11 },
-  priceGrid: { flexDirection: 'row', backgroundColor: '#f8fafc', borderRadius: 10, padding: 8, marginTop: 10 },
+  priceGrid: { flexDirection: 'row', backgroundColor: colors.bg, borderRadius: 10, padding: 8, marginTop: 10 },
   priceLabel: { fontSize: 9, color: '#94a3b8' },
   priceValue: { fontSize: 12, fontWeight: '700', color: NAVY, marginTop: 2 },
   emptyText: { textAlign: 'center', color: '#94a3b8', paddingVertical: 40 },
   fab: { position: 'absolute', right: 16, bottom: 16, backgroundColor: NAVY },
-  modal: { backgroundColor: '#fff', margin: 20, padding: 20, borderRadius: 16, maxHeight: '85%' },
+  modal: { backgroundColor: '#fff', margin: 20, padding: 20, borderRadius: 24, maxHeight: '85%' },
   input: { marginTop: 10 },
   fieldLabel: { fontSize: 11, color: '#64748b', marginTop: 12 },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 16 },
-  catManageRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 10, padding: 10, marginBottom: 6 },
+  catManageRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.bg, borderRadius: 10, padding: 10, marginBottom: 6 },
 });

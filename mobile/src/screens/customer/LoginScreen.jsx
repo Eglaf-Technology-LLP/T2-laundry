@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text, Button, HelperText, Avatar } from 'react-native-paper';
+import { StyleSheet } from 'react-native';
+import { Button } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AppTextInput from '../../components/AppTextInput';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../api/client';
-
-const NAVY = '#0E2346';
+import { AuthHeader, ErrorBanner, SurfaceCard, uiStyles } from '../../components/ui';
+import { colors, spacing } from '../../theme/tokens';
 
 export default function LoginScreen({ navigation, route }) {
   const { login } = useAuth();
@@ -47,39 +47,46 @@ export default function LoginScreen({ navigation, route }) {
       enableOnAndroid
       extraScrollHeight={20}
       keyboardShouldPersistTaps="handled">
-      <Avatar.Icon size={56} icon="lock-outline" style={styles.avatar} color="#fff" />
-      <Text variant="headlineMedium" style={styles.title}>Welcome back</Text>
-      <Text variant="bodyMedium" style={styles.subtitle}>Log in to manage your bookings</Text>
+      <AuthHeader title="Welcome back" subtitle="Log in to manage your bookings" />
 
-      <AppTextInput
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        left={<AppTextInput.Icon icon="email-outline" />}
-        style={styles.input}
-      />
-      <AppTextInput
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry={!showPassword}
-        left={<AppTextInput.Icon icon="lock-outline" />}
-        right={<AppTextInput.Icon icon={showPassword ? 'eye-off-outline' : 'eye-outline'} onPress={() => setShowPassword((v) => !v)} />}
-        style={styles.input}
-      />
+      <SurfaceCard>
+        <AppTextInput
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          left={<AppTextInput.Icon icon="email-outline" />}
+          style={styles.input}
+        />
+        <AppTextInput
+          label="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!showPassword}
+          left={<AppTextInput.Icon icon="lock-outline" />}
+          right={<AppTextInput.Icon icon={showPassword ? 'eye-off-outline' : 'eye-outline'} onPress={() => setShowPassword((v) => !v)} />}
+          style={styles.input}
+        />
 
-      {!!error && <HelperText type="error" visible>{error}</HelperText>}
+        <ErrorBanner message={error} style={styles.error} />
 
-      <Button mode="contained" onPress={onSubmit} loading={submitting} disabled={submitting || !email || !password} contentStyle={styles.btnContent} style={styles.btn}>
-        Log In
-      </Button>
+        <Button
+          mode="contained"
+          onPress={onSubmit}
+          loading={submitting}
+          disabled={submitting || !email || !password}
+          contentStyle={uiStyles.btnContent}
+          labelStyle={uiStyles.btnLabel}
+          style={[uiStyles.btn, styles.btn]}>
+          Log In
+        </Button>
+      </SurfaceCard>
 
-      <Button mode="text" onPress={() => navigation.navigate('Signup')} style={styles.linkBtn}>
+      <Button mode="text" onPress={() => navigation.navigate('Signup')} textColor={colors.cyanDark} labelStyle={styles.linkLabel} style={styles.linkBtn}>
         Don't have an account? Sign up
       </Button>
-      <Button mode="text" onPress={() => navigation.navigate('AdminLogin')} textColor="#94a3b8" compact>
+      <Button mode="text" icon="shield-account-outline" onPress={() => navigation.navigate('AdminLogin')} textColor={colors.textFaint} compact>
         Staff / Admin login
       </Button>
     </KeyboardAwareScrollView>
@@ -87,13 +94,11 @@ export default function LoginScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#f8fafc' },
-  container: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  avatar: { alignSelf: 'center', backgroundColor: NAVY, marginBottom: 16 },
-  title: { textAlign: 'center', marginBottom: 4, fontWeight: '700', color: NAVY },
-  subtitle: { textAlign: 'center', marginBottom: 28, color: '#64748b' },
+  flex: { flex: 1, backgroundColor: colors.bg },
+  container: { flexGrow: 1, justifyContent: 'center', padding: spacing.xxl },
   input: { marginBottom: 14 },
-  btn: { marginTop: 8, borderRadius: 12 },
-  btnContent: { paddingVertical: 6 },
-  linkBtn: { marginTop: 12 },
+  error: { marginBottom: spacing.sm },
+  btn: { marginTop: spacing.xs },
+  linkBtn: { marginTop: spacing.lg },
+  linkLabel: { fontWeight: '700' },
 });

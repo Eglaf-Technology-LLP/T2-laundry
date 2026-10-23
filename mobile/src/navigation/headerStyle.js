@@ -1,14 +1,16 @@
-// Single source of truth for header look — matches the web app's navy/gold
-// brand pair instead of each navigator picking its own header colors.
-export const NAVY = '#0E2346';
-export const GOLD = '#D4AF37';
+import { colors } from '../theme/tokens';
+
+// Single source of truth for header look — navy brand header shared by every
+// navigator instead of each one picking its own colors.
+export const NAVY = colors.navy;
+export const GOLD = colors.gold;
 
 export const headerScreenOptions = {
-  headerStyle: { backgroundColor: NAVY, borderBottomWidth: 2, borderBottomColor: GOLD },
+  headerStyle: { backgroundColor: NAVY },
   headerTintColor: '#fff',
   headerTitleStyle: { fontWeight: '700', fontSize: 17 },
-  // The default header shadow/elevation reads as a stray gray line under a
-  // dark header — swap it for the deliberate gold border above instead.
+  headerTitleAlign: 'center',
+  // A flat navy header reads cleaner than one with a stray shadow line under it.
   headerShadowVisible: false,
 };
 

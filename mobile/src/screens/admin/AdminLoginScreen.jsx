@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { StyleSheet } from 'react-native';
-import { Text, Button, HelperText, Avatar } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AppTextInput from '../../components/AppTextInput';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../api/client';
-
-const NAVY = '#0E2346';
+import { AuthHeader, ErrorBanner, SurfaceCard, uiStyles } from '../../components/ui';
+import { colors, spacing } from '../../theme/tokens';
 
 export default function AdminLoginScreen({ navigation }) {
   const { login, logout } = useAuth();
@@ -45,35 +45,44 @@ export default function AdminLoginScreen({ navigation }) {
       enableOnAndroid
       extraScrollHeight={20}
       keyboardShouldPersistTaps="handled">
-      <Avatar.Icon size={56} icon="shield-account-outline" style={styles.avatar} color="#fff" />
-      <Text variant="headlineMedium" style={styles.title}>Admin sign in</Text>
-      <Text variant="bodyMedium" style={styles.subtitle}>T2 Laundry command center</Text>
+      <AuthHeader badge="Staff only" title="Admin sign in" subtitle="T2 Laundry command center" />
 
-      <AppTextInput
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        left={<AppTextInput.Icon icon="email-outline" />}
-        style={styles.input}
-      />
-      <AppTextInput
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry={!showPassword}
-        left={<AppTextInput.Icon icon="lock-outline" />}
-        right={<AppTextInput.Icon icon={showPassword ? 'eye-off-outline' : 'eye-outline'} onPress={() => setShowPassword((v) => !v)} />}
-        style={styles.input}
-      />
+      <SurfaceCard>
+        <AppTextInput
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          left={<AppTextInput.Icon icon="email-outline" />}
+          style={styles.input}
+        />
+        <AppTextInput
+          label="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!showPassword}
+          left={<AppTextInput.Icon icon="lock-outline" />}
+          right={<AppTextInput.Icon icon={showPassword ? 'eye-off-outline' : 'eye-outline'} onPress={() => setShowPassword((v) => !v)} />}
+          style={styles.input}
+        />
 
-      {!!error && <HelperText type="error" visible>{error}</HelperText>}
+        <ErrorBanner message={error} style={styles.error} />
 
-      <Button mode="contained" onPress={onSubmit} loading={submitting} disabled={submitting || !email || !password} contentStyle={styles.btnContent} style={styles.btn}>
-        Sign in
-      </Button>
-      <Button mode="text" onPress={() => navigation.goBack()} style={styles.linkBtn}>
+        <Button
+          mode="contained"
+          icon="shield-lock-outline"
+          onPress={onSubmit}
+          loading={submitting}
+          disabled={submitting || !email || !password}
+          contentStyle={uiStyles.btnContent}
+          labelStyle={uiStyles.btnLabel}
+          style={[uiStyles.btn, styles.btn]}>
+          Sign in
+        </Button>
+      </SurfaceCard>
+
+      <Button mode="text" icon="arrow-left" onPress={() => navigation.goBack()} textColor={colors.textMuted} style={styles.linkBtn}>
         Back
       </Button>
     </KeyboardAwareScrollView>
@@ -81,13 +90,10 @@ export default function AdminLoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#f8fafc' },
-  container: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  avatar: { alignSelf: 'center', backgroundColor: NAVY, marginBottom: 16 },
-  title: { marginBottom: 4, fontWeight: '700', textAlign: 'center', color: NAVY },
-  subtitle: { marginBottom: 28, color: '#64748b', textAlign: 'center' },
+  flex: { flex: 1, backgroundColor: colors.bg },
+  container: { flexGrow: 1, justifyContent: 'center', padding: spacing.xxl },
   input: { marginBottom: 14 },
-  btn: { marginTop: 8, borderRadius: 12 },
-  btnContent: { paddingVertical: 6 },
-  linkBtn: { marginTop: 12 },
+  error: { marginBottom: spacing.sm },
+  btn: { marginTop: spacing.xs },
+  linkBtn: { marginTop: spacing.lg },
 });

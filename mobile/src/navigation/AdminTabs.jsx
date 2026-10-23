@@ -12,7 +12,14 @@ import { headerScreenOptions } from './headerStyle';
 import CustomTabBar from './CustomTabBar';
 
 const Tab = createBottomTabNavigator();
-const ICONS = { Dashboard: '📊', Orders: '📦', Items: '👕', Members: '👥', Plans: '👑', Services: '🧼' };
+const ICONS = {
+  Dashboard: ['view-dashboard-outline', 'view-dashboard'],
+  Orders: ['package-variant-closed', 'package-variant'],
+  Items: ['tshirt-crew-outline', 'tshirt-crew'],
+  Members: ['account-group-outline', 'account-group'],
+  Plans: ['crown-outline', 'crown'],
+  Services: ['spray-bottle', 'spray-bottle'],
+};
 const LABELS = { Dashboard: 'Dashboard', Orders: 'Orders', Items: 'Items', Members: 'Members', Plans: 'Plans', Services: 'Services' };
 
 export default function AdminTabs() {
@@ -21,7 +28,7 @@ export default function AdminTabs() {
   return (
     <Tab.Navigator
       // 6 tabs (vs. 5 on the customer bar) need a smaller icon/label to avoid crowding.
-      tabBar={(props) => <CustomTabBar {...props} icons={ICONS} labels={LABELS} iconSize={18} labelSize={9} />}
+      tabBar={(props) => <CustomTabBar {...props} icons={ICONS} labels={LABELS} iconSize={20} labelSize={10} />}
       screenOptions={{
         ...headerScreenOptions,
         headerTitle: 'T2 Admin',

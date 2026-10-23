@@ -11,7 +11,13 @@ import CustomTabBar from './CustomTabBar';
 
 const Tab = createBottomTabNavigator();
 
-const ICONS = { Home: '🏠', Services: '🧺', Subscription: '👑', Track: '📦', Account: '👤' };
+const ICONS = {
+  Home: ['home-outline', 'home'],
+  Services: ['washing-machine', 'washing-machine'],
+  Subscription: ['crown-outline', 'crown'],
+  Track: ['map-marker-path', 'map-marker-path'],
+  Account: ['account-circle-outline', 'account-circle'],
+};
 // Short, one-word labels so all 5 tabs read cleanly in the bar — the header
 // above each screen still shows the full title (e.g. "T2 Laundry").
 const LABELS = { Home: 'Home', Services: 'Services', Subscription: 'Plans', Track: 'Track', Account: 'Account' };

@@ -4,9 +4,10 @@ import { Text, Chip, Portal, Modal, Button, IconButton, ActivityIndicator, Card,
 import AppTextInput from '../../components/AppTextInput';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../../api/client';
+import { colors, shadow } from '../../theme/tokens';
 
-const NAVY = '#0E2346';
-const GOLD = '#B08D2C';
+const NAVY = colors.navy;
+const GOLD = colors.goldDark;
 
 function Usage({ label, used, total }) {
   const pct = total ? Math.min(100, (used / total) * 100) : 0;
@@ -161,12 +162,12 @@ export default function AdminMembersScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#f8fafc' },
+  flex: { flex: 1, backgroundColor: colors.bg },
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   statCard: { flex: 1, borderRadius: 14 },
   statValue: { fontSize: 22, fontWeight: '700', color: NAVY },
   search: { backgroundColor: '#fff', marginBottom: 10 },
-  card: { backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 10 },
+  card: { backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.border, ...shadow.card },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rowGap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   navyBold: { color: NAVY, fontWeight: '700' },
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
   barFill: { height: '100%', borderRadius: 3, backgroundColor: GOLD },
   emptyText: { textAlign: 'center', color: '#94a3b8', paddingVertical: 40 },
   addBtn: { position: 'absolute', right: 16, bottom: 16, left: 16, borderRadius: 28 },
-  modal: { backgroundColor: '#fff', margin: 20, padding: 20, borderRadius: 16 },
+  modal: { backgroundColor: '#fff', margin: 20, padding: 20, borderRadius: 24 },
   input: { marginTop: 10 },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 16 },
 });

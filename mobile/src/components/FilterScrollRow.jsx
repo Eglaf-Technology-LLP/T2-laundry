@@ -1,8 +1,9 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
 import { IconButton } from 'react-native-paper';
+import { colors } from '../theme/tokens';
 
-const NAVY = '#0E2346';
+const NAVY = colors.navy;
 
 // Wraps a horizontal filter-chip FlatList with prev/next chevrons — every
 // screen with a horizontal filter row (category/status chips) used to make

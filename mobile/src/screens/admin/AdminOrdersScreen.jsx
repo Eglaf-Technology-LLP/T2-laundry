@@ -5,12 +5,13 @@ import AppTextInput from '../../components/AppTextInput';
 import FilterScrollRow from '../../components/FilterScrollRow';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../../api/client';
+import { colors, shadow } from '../../theme/tokens';
 
 const STAGES = ['pending', 'picked_up', 'in_facility', 'quality_check', 'out_for_delivery', 'delivered'];
 const FILTERS = ['all', ...STAGES];
 const STAGE_LABELS = { pending: 'Order Placed', picked_up: 'Picked Up', in_facility: 'In Facility', quality_check: 'Quality Check', out_for_delivery: 'Out for Delivery', delivered: 'Delivered' };
-const NAVY = '#0E2346';
-const GOLD = '#B08D2C';
+const NAVY = colors.navy;
+const GOLD = colors.goldDark;
 
 export default function AdminOrdersScreen() {
   const [orders, setOrders] = useState([]);
@@ -150,24 +151,24 @@ export default function AdminOrdersScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#f8fafc' },
+  flex: { flex: 1, backgroundColor: colors.bg },
   filterBar: { padding: 12, backgroundColor: '#fff' },
   search: { backgroundColor: '#fff' },
   chip: { backgroundColor: '#fff' },
   chipActive: { backgroundColor: NAVY },
-  orderCard: { backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 10, gap: 6 },
+  orderCard: { backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.border, ...shadow.card, gap: 6 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rowGap: { flexDirection: 'row', gap: 8, marginTop: 16 },
   code: { fontWeight: '700', color: NAVY, fontSize: 14 },
   dim: { color: '#64748b', fontSize: 12 },
   gold: { color: GOLD, fontWeight: '700' },
   emptyText: { textAlign: 'center', color: '#94a3b8', paddingVertical: 40 },
-  modal: { backgroundColor: '#fff', margin: 20, padding: 20, borderRadius: 16, maxHeight: '85%' },
+  modal: { backgroundColor: '#fff', margin: 20, padding: 20, borderRadius: 24, maxHeight: '85%' },
   navyBold: { color: NAVY, fontWeight: '700' },
   sectionLabel: { fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
   stageRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
   stageDot: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' },
   stageDotDone: { backgroundColor: NAVY },
   stageText: { fontSize: 13, color: '#94a3b8' },
-  itemsBox: { backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, marginTop: 16 },
+  itemsBox: { backgroundColor: colors.bg, borderRadius: 12, padding: 12, marginTop: 16 },
 });

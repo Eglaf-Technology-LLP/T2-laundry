@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Text, Button, HelperText, Avatar } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AppTextInput from '../../components/AppTextInput';
 import { useAuth } from '../../lib/AuthContext';
-
-const NAVY = '#0E2346';
+import { AuthHeader, EmptyState, ErrorBanner, SurfaceCard, uiStyles } from '../../components/ui';
+import { colors, spacing } from '../../theme/tokens';
 
 export default function SignupScreen({ navigation, route }) {
   const { signup } = useAuth();
@@ -39,13 +39,20 @@ export default function SignupScreen({ navigation, route }) {
 
   if (needsEmailConfirm) {
     return (
-      <View style={styles.container}>
-        <Avatar.Icon size={56} icon="email-check-outline" style={styles.avatar} color="#fff" />
-        <Text variant="headlineMedium" style={styles.title}>Check your email</Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          We've sent a confirmation link to {email}. Click it, then come back and log in.
-        </Text>
-        <Button mode="contained" style={styles.btn} contentStyle={styles.btnContent} onPress={() => navigation.replace('Login')}>Go to login</Button>
+      <View style={[styles.flex, styles.confirmWrap]}>
+        <EmptyState
+          icon="email-check-outline"
+          title="Check your email"
+          message={`We've sent a confirmation link to ${email}. Click it, then come back and log in.`}>
+          <Button
+            mode="contained"
+            style={[uiStyles.btn, styles.confirmBtn]}
+            contentStyle={uiStyles.btnContent}
+            labelStyle={uiStyles.btnLabel}
+            onPress={() => navigation.replace('Login')}>
+            Go to login
+          </Button>
+        </EmptyState>
       </View>
     );
   }
@@ -57,43 +64,44 @@ export default function SignupScreen({ navigation, route }) {
       enableOnAndroid
       extraScrollHeight={20}
       keyboardShouldPersistTaps="handled">
-      <Avatar.Icon size={56} icon="account-plus-outline" style={styles.avatar} color="#fff" />
-      <Text variant="headlineMedium" style={styles.title}>Create your account</Text>
-      <Text variant="bodyMedium" style={styles.subtitle}>Sign up to subscribe to a membership</Text>
+      <AuthHeader title="Create your account" subtitle="Sign up to subscribe to a membership" />
 
-      <AppTextInput label="Full name" value={fullName} onChangeText={setFullName} left={<AppTextInput.Icon icon="account-outline" />} style={styles.input} />
-      <AppTextInput
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        left={<AppTextInput.Icon icon="email-outline" />}
-        style={styles.input}
-      />
-      <AppTextInput
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry={!showPassword}
-        left={<AppTextInput.Icon icon="lock-outline" />}
-        right={<AppTextInput.Icon icon={showPassword ? 'eye-off-outline' : 'eye-outline'} onPress={() => setShowPassword((v) => !v)} />}
-        style={styles.input}
-      />
+      <SurfaceCard>
+        <AppTextInput label="Full name" value={fullName} onChangeText={setFullName} left={<AppTextInput.Icon icon="account-outline" />} style={styles.input} />
+        <AppTextInput
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          left={<AppTextInput.Icon icon="email-outline" />}
+          style={styles.input}
+        />
+        <AppTextInput
+          label="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!showPassword}
+          left={<AppTextInput.Icon icon="lock-outline" />}
+          right={<AppTextInput.Icon icon={showPassword ? 'eye-off-outline' : 'eye-outline'} onPress={() => setShowPassword((v) => !v)} />}
+          style={styles.input}
+        />
 
-      {!!error && <HelperText type="error" visible>{error}</HelperText>}
+        <ErrorBanner message={error} style={styles.error} />
 
-      <Button
-        mode="contained"
-        onPress={onSubmit}
-        loading={submitting}
-        disabled={submitting || !fullName || !email || !password}
-        contentStyle={styles.btnContent}
-        style={styles.btn}>
-        Create account
-      </Button>
+        <Button
+          mode="contained"
+          onPress={onSubmit}
+          loading={submitting}
+          disabled={submitting || !fullName || !email || !password}
+          contentStyle={uiStyles.btnContent}
+          labelStyle={uiStyles.btnLabel}
+          style={[uiStyles.btn, styles.btn]}>
+          Create account
+        </Button>
+      </SurfaceCard>
 
-      <Button mode="text" onPress={() => navigation.navigate('Login')} style={styles.linkBtn}>
+      <Button mode="text" onPress={() => navigation.navigate('Login')} textColor={colors.cyanDark} labelStyle={styles.linkLabel} style={styles.linkBtn}>
         Already have an account? Log in
       </Button>
     </KeyboardAwareScrollView>
@@ -101,13 +109,13 @@ export default function SignupScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#f8fafc' },
-  container: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  avatar: { alignSelf: 'center', backgroundColor: NAVY, marginBottom: 16 },
-  title: { marginBottom: 4, fontWeight: '700', textAlign: 'center', color: NAVY },
-  subtitle: { marginBottom: 28, color: '#64748b', textAlign: 'center' },
+  flex: { flex: 1, backgroundColor: colors.bg },
+  container: { flexGrow: 1, justifyContent: 'center', padding: spacing.xxl },
+  confirmWrap: { justifyContent: 'center' },
+  confirmBtn: { marginTop: spacing.xxl, alignSelf: 'stretch' },
   input: { marginBottom: 14 },
-  btn: { marginTop: 8, borderRadius: 12 },
-  btnContent: { paddingVertical: 6 },
-  linkBtn: { marginTop: 12 },
+  error: { marginBottom: spacing.sm },
+  btn: { marginTop: spacing.xs },
+  linkBtn: { marginTop: spacing.lg },
+  linkLabel: { fontWeight: '700' },
 });

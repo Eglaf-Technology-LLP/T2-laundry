@@ -1,43 +1,139 @@
 import React from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
-import { Text, Button, Card } from 'react-native-paper';
+import { View, ScrollView, StyleSheet, ImageBackground, Pressable } from 'react-native';
+import { Text, Button, Icon } from 'react-native-paper';
+import { useAuth } from '../../lib/AuthContext';
+import { IconTile, SectionTitle, BrandLogo, uiStyles } from '../../components/ui';
+import { colors, radius, shadow, spacing, type } from '../../theme/tokens';
 
-const NAVY = '#0E2346';
-const GOLD = '#B08D2C';
+const hero = require('../../assets/hero.jpg');
 
 const STEPS = [
-  { title: 'Choose your service', desc: 'Select items & care type — wash, iron, dry clean or specialty.' },
-  { title: 'We pick up', desc: 'Book a slot or drop at our shop. Free pickup & delivery for members.' },
-  { title: 'Expert care', desc: 'Specialist cleaning, pressing and a quality check on every item.' },
-  { title: 'Fresh delivery', desc: 'Track in real-time and receive your wardrobe, immaculate.' },
+  { title: 'Choose your service', desc: 'Select items & care type — wash, iron, dry clean or specialty.', icon: 'gesture-tap' },
+  { title: 'We pick up', desc: 'Book a slot or drop at our shop. Free pickup & delivery for members.', icon: 'truck-outline' },
+  { title: 'Expert care', desc: 'Specialist cleaning, pressing and a quality check on every item.', icon: 'hand-heart-outline' },
+  { title: 'Fresh delivery', desc: 'Track in real-time and receive your wardrobe, immaculate.', icon: 'truck-check-outline' },
 ];
 
+// The four care types every item is priced for (see ItemCard's
+// SERVICE_OPTIONS) — each card just opens the Services catalogue.
+const SERVICES = [
+  { title: 'Wash', desc: 'Fresh & clean', icon: 'washing-machine', tone: 'cyan' },
+  { title: 'Iron', desc: 'Crisp pressing', icon: 'iron-outline', tone: 'navy' },
+  { title: 'Wash & Iron', desc: 'Complete care', icon: 'tshirt-crew-outline', tone: 'navy' },
+  { title: 'Dry Clean', desc: 'Delicate fabrics', icon: 'hanger', tone: 'cyan' },
+];
+
+function firstName(fullName) {
+  return (fullName || '').trim().split(/\s+/)[0];
+}
+
 export default function HomeScreen({ navigation }) {
+  const { profile } = useAuth();
+  const name = firstName(profile?.full_name);
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.hero}>
-        <Text variant="headlineLarge" style={styles.heroTitle}>Premium garment care, delivered.</Text>
-        <Text style={styles.heroSubtitle}>Wash, iron, dry clean and specialty care — booked in seconds, tracked in real time.</Text>
-        <View style={styles.heroBtns}>
-          <Button mode="contained" onPress={() => navigation.navigate('Services')} style={{ flex: 1 }}>Order now</Button>
-          <Button mode="outlined" onPress={() => navigation.navigate('Track')} style={{ flex: 1 }}>Track order</Button>
+    <ScrollView style={uiStyles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.greetRow}>
+        <View style={styles.flex}>
+          <Text style={type.small}>{name ? 'Welcome back' : 'Welcome to T2 Laundry'}</Text>
+          <Text style={type.h1}>{name ? `Hi, ${name} 👋` : 'Fresh starts here'}</Text>
         </View>
-        <Button mode="text" onPress={() => navigation.navigate('Subscription')} style={{ marginTop: 4 }}>
-          See membership plans →
-        </Button>
+        <BrandLogo size={46} />
       </View>
 
-      <Text style={styles.eyebrow}>The T2 Standard</Text>
-      <Text variant="titleLarge" style={styles.sectionTitle}>A transparent, four-step ritual.</Text>
-      <View style={styles.cardsWrap}>
+      <ImageBackground source={hero} style={styles.hero} imageStyle={styles.heroImage}>
+        <View style={styles.heroScrim} />
+        <View style={styles.heroBody}>
+          <View style={styles.heroTag}>
+            <Icon source="star-four-points" size={12} color={colors.navy} />
+            <Text style={styles.heroTagText}>Premium garment care</Text>
+          </View>
+          <Text style={styles.heroTitle}>Fresh clothes,{'\n'}delivered to your door.</Text>
+          <Text style={styles.heroSubtitle}>Wash, iron, dry clean and specialty care — booked in seconds, tracked in real time.</Text>
+          <Button
+            mode="contained"
+            icon="calendar-clock"
+            onPress={() => navigation.navigate('Services')}
+            buttonColor={colors.cyan}
+            textColor={colors.navy}
+            style={[uiStyles.btn, styles.heroCta]}
+            contentStyle={uiStyles.btnContent}
+            labelStyle={uiStyles.btnLabel}>
+            Schedule Pickup
+          </Button>
+        </View>
+      </ImageBackground>
+
+      <View style={styles.quickRow}>
+        <Pressable style={({ pressed }) => [styles.quickCard, pressed && styles.pressed]} onPress={() => navigation.navigate('Services')} accessibilityRole="button">
+          <IconTile icon="basket-outline" size={40} />
+          <View style={styles.flex}>
+            <Text style={type.h3}>Order now</Text>
+            <Text style={type.small}>Build your basket</Text>
+          </View>
+        </Pressable>
+        <Pressable style={({ pressed }) => [styles.quickCard, pressed && styles.pressed]} onPress={() => navigation.navigate('Track')} accessibilityRole="button">
+          <IconTile icon="map-marker-path" size={40} tone="navy" />
+          <View style={styles.flex}>
+            <Text style={type.h3}>Track order</Text>
+            <Text style={type.small}>Live status</Text>
+          </View>
+        </Pressable>
+      </View>
+
+      <SectionTitle
+        title="Our services"
+        subtitle="Expert care for every fabric"
+        style={styles.sectionGap}
+        right={<Text style={styles.link} onPress={() => navigation.navigate('Services')}>See all</Text>}
+      />
+      <View style={styles.serviceGrid}>
+        {SERVICES.map((s) => (
+          <Pressable
+            key={s.title}
+            style={({ pressed }) => [styles.serviceCard, pressed && styles.pressed]}
+            onPress={() => navigation.navigate('Services')}
+            accessibilityRole="button"
+            accessibilityLabel={s.title}>
+            <IconTile icon={s.icon} size={48} tone={s.tone} />
+            <Text style={[type.h3, styles.serviceTitle]}>{s.title}</Text>
+            <Text style={type.small}>{s.desc}</Text>
+            <View style={styles.serviceArrow}>
+              <Icon source="arrow-right" size={16} color={colors.navy} />
+            </View>
+          </Pressable>
+        ))}
+      </View>
+
+      <Pressable style={({ pressed }) => [styles.memberBanner, pressed && styles.pressed]} onPress={() => navigation.navigate('Subscription')} accessibilityRole="button">
+        <IconTile icon="crown" size={48} tone="gold" />
+        <View style={styles.flex}>
+          <Text style={styles.memberTitle}>Become a T2 member</Text>
+          <Text style={styles.memberText}>Free pickup & delivery, priority booking and more.</Text>
+        </View>
+        <View style={styles.memberCta}>
+          <Text style={styles.memberCtaText}>See membership plans</Text>
+          <Icon source="chevron-right" size={18} color={colors.navy} />
+        </View>
+      </Pressable>
+
+      <Text style={[type.caption, styles.eyebrow]}>The T2 Standard</Text>
+      <Text style={type.h2}>A transparent, four-step ritual.</Text>
+      <View style={styles.steps}>
         {STEPS.map((s, i) => (
-          <Card key={i} style={styles.stepCard}>
-            <Card.Content>
-              <Text style={styles.stepNumber}>{String(i + 1).padStart(2, '0')}</Text>
-              <Text style={styles.navyBold}>{s.title}</Text>
-              <Text style={styles.desc}>{s.desc}</Text>
-            </Card.Content>
-          </Card>
+          <View key={s.title} style={styles.stepRow}>
+            <View style={styles.stepRail}>
+              <View style={styles.stepDot}>
+                <Icon source={s.icon} size={18} color={colors.cyanDark} />
+              </View>
+              {i < STEPS.length - 1 && <View style={styles.stepLine} />}
+            </View>
+            <View style={styles.stepBody}>
+              <Text style={styles.stepNumber}>STEP {String(i + 1).padStart(2, '0')}</Text>
+              <Text style={type.h3}>{s.title}</Text>
+              <Text style={[type.small, styles.stepDesc]}>{s.desc}</Text>
+            </View>
+          </View>
         ))}
       </View>
     </ScrollView>
@@ -45,16 +141,44 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, paddingBottom: 40, backgroundColor: '#f8fafc' },
-  hero: { paddingVertical: 24, alignItems: 'center' },
-  eyebrow: { fontSize: 11, color: GOLD, textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center' },
-  heroTitle: { color: NAVY, fontWeight: '700', textAlign: 'center', marginTop: 8 },
-  heroSubtitle: { color: '#64748b', textAlign: 'center', marginTop: 10 },
-  heroBtns: { flexDirection: 'row', gap: 10, marginTop: 20, width: '100%' },
-  sectionTitle: { color: NAVY, fontWeight: '700', marginTop: 6, textAlign: 'center' },
-  cardsWrap: { gap: 10, marginTop: 16 },
-  stepCard: { borderRadius: 16 },
-  navyBold: { color: NAVY, fontWeight: '700' },
-  desc: { color: '#64748b', fontSize: 12, marginTop: 6 },
-  stepNumber: { color: 'rgba(14,35,70,0.15)', fontSize: 28, fontWeight: '700' },
+  flex: { flex: 1 },
+  container: { padding: spacing.lg, paddingBottom: 40 },
+  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  greetRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg, marginTop: spacing.xs },
+
+  hero: { borderRadius: radius.xxl, overflow: 'hidden', minHeight: 300, justifyContent: 'flex-end', ...shadow.raised },
+  heroImage: { borderRadius: radius.xxl },
+  heroScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(14,35,70,0.68)' },
+  heroBody: { padding: spacing.xl },
+  heroTag: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: colors.gold, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
+  heroTagText: { fontSize: 11, fontWeight: '800', color: colors.navy, letterSpacing: 0.3 },
+  heroTitle: { color: '#fff', fontSize: 27, lineHeight: 33, fontWeight: '800', marginTop: spacing.md },
+  heroSubtitle: { color: colors.onDarkMuted, fontSize: 13, lineHeight: 19, marginTop: spacing.sm },
+  heroCta: { marginTop: spacing.lg },
+
+  quickRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
+  quickCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: colors.border, ...shadow.card },
+
+  sectionGap: { marginTop: spacing.xxl },
+  link: { color: colors.cyanDark, fontWeight: '700', fontSize: 13 },
+  serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  serviceCard: { width: '47.8%', flexGrow: 1, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, borderWidth: 1, borderColor: colors.border, ...shadow.card },
+  serviceTitle: { marginTop: spacing.md, marginBottom: 2 },
+  serviceArrow: { position: 'absolute', top: spacing.lg, right: spacing.lg, width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+
+  memberBanner: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.md, backgroundColor: colors.navy, borderRadius: radius.xl, padding: spacing.lg, marginTop: spacing.xxl, ...shadow.raised },
+  memberTitle: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  memberText: { color: colors.onDarkMuted, fontSize: 12, marginTop: 2 },
+  memberCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', backgroundColor: colors.gold, borderRadius: radius.md, paddingVertical: 10, gap: 4 },
+  memberCtaText: { color: colors.navy, fontWeight: '800', fontSize: 13 },
+
+  eyebrow: { color: colors.cyanDark, marginTop: spacing.xxxl, marginBottom: 4 },
+  steps: { marginTop: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
+  stepRow: { flexDirection: 'row', gap: spacing.md },
+  stepRail: { alignItems: 'center', width: 40 },
+  stepDot: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.cyanSoft, alignItems: 'center', justifyContent: 'center' },
+  stepLine: { flex: 1, width: 2, backgroundColor: colors.border, marginVertical: 4 },
+  stepBody: { flex: 1, paddingBottom: spacing.lg },
+  stepNumber: { fontSize: 10, fontWeight: '800', color: colors.textFaint, letterSpacing: 1, marginTop: 2 },
+  stepDesc: { marginTop: 2 },
 });
