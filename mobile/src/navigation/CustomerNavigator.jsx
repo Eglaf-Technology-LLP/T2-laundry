@@ -9,10 +9,10 @@ import { headerScreenOptions } from './headerStyle';
 
 const Stack = createNativeStackNavigator();
 
-export default function CustomerNavigator() {
+export default function CustomerNavigator({ initialTab }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false, ...headerScreenOptions }}>
-      <Stack.Screen name="Tabs" component={CustomerTabs} />
+      <Stack.Screen name="Tabs" component={CustomerTabs} initialParams={{ initialTab }} />
       <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: true, title: 'Log In' }} />
       <Stack.Screen name="Signup" component={SignupScreen} options={{ headerShown: true, title: 'Sign Up' }} />
       <Stack.Screen name="Cart" component={CartScreen} options={{ headerShown: true, title: 'Your Order' }} />

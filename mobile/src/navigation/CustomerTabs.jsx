@@ -16,9 +16,10 @@ const ICONS = { Home: '🏠', Services: '🧺', Subscription: '👑', Track: '�
 // above each screen still shows the full title (e.g. "T2 Laundry").
 const LABELS = { Home: 'Home', Services: 'Services', Subscription: 'Plans', Track: 'Track', Account: 'Account' };
 
-export default function CustomerTabs() {
+export default function CustomerTabs({ route }) {
   return (
     <Tab.Navigator
+      initialRouteName={route.params?.initialTab}
       tabBar={(props) => <CustomTabBar {...props} icons={ICONS} labels={LABELS} />}
       screenOptions={{
         // A real header (rather than headerShown: false) is what makes each
