@@ -4,6 +4,16 @@ import { supabase } from '../api/supabaseClient';
 
 const AuthContext = createContext(null);
 
+// The mobile app is customer-only — admins use the web dashboard. login()
+// rejects an admin account with this code so the login screen can say why.
+export const ADMIN_NOT_ALLOWED = 'ADMIN_NOT_ALLOWED';
+
+function signOutQuietly() {
+  // Deferred: signing out from inside onAuthStateChange's own callback can
+  // deadlock supabase-js's auth lock.
+  setTimeout(() => api.auth.logout().catch(() => {}), 0);
+}
+
 export function AuthProvider({ children }) {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -17,17 +27,36 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Restored or newly-signed-in sessions only count if they belong to a
+  // customer; an admin session is signed out instead of opening the app.
+  const applySession = async (session) => {
+    if (!session) {
+      setIsAuthenticated(false);
+      setProfile(null);
+      return;
+    }
+    let p = null;
+    try {
+      p = await api.auth.getProfile();
+    } catch {
+      p = null;
+    }
+    if (p?.role === 'admin') {
+      signOutQuietly();
+      return;
+    }
+    setProfile(p);
+    setIsAuthenticated(true);
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
-      setIsAuthenticated(!!data.session);
-      if (data.session) await loadProfile();
+      await applySession(data.session);
       setIsLoadingAuth(false);
     });
 
     const { data: subscription } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setIsAuthenticated(!!session);
-      if (session) await loadProfile();
-      else setProfile(null);
+      await applySession(session);
     });
 
     return () => subscription.subscription.unsubscribe();
@@ -35,8 +64,15 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     await api.auth.login(email, password);
+    const p = await api.auth.getProfile();
+    if (p?.role === 'admin') {
+      await api.auth.logout().catch(() => {});
+      const err = new Error("Admin accounts can't sign in on the mobile app. Please use the web dashboard.");
+      err.code = ADMIN_NOT_ALLOWED;
+      throw err;
+    }
+    setProfile(p);
     setIsAuthenticated(true);
-    await loadProfile();
   };
 
   // Returns true if the caller is now logged in. If the Supabase project has

@@ -7,7 +7,10 @@ import { useAuth } from '../../lib/AuthContext';
 import { AuthHeader, EmptyState, ErrorBanner, SurfaceCard, uiStyles } from '../../components/ui';
 import { colors, spacing } from '../../theme/tokens';
 
-export default function SignupScreen({ navigation, route }) {
+// Like LoginScreen: a pushed stack screen (carrying `next`/`plan` to resume
+// a checkout or subscribe), or `embedded` in the Account tab, where
+// `onShowLogin` swaps back to the login form in place.
+export default function SignupScreen({ navigation, route, embedded, onShowLogin }) {
   const { signup } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -17,7 +20,8 @@ export default function SignupScreen({ navigation, route }) {
   const [submitting, setSubmitting] = useState(false);
   const [needsEmailConfirm, setNeedsEmailConfirm] = useState(false);
 
-  const nextScreen = route.params?.next;
+  const nextScreen = route?.params?.next;
+  const showLogin = () => (onShowLogin ? onShowLogin() : navigation.navigate('Login'));
 
   const onSubmit = async () => {
     setError('');
@@ -25,6 +29,8 @@ export default function SignupScreen({ navigation, route }) {
     try {
       const loggedIn = await signup(email.trim(), password, fullName.trim());
       if (loggedIn) {
+        // In the Account tab, the tab re-renders as the account page on its own.
+        if (embedded) return;
         if (nextScreen) navigation.replace(nextScreen, { plan: route.params?.plan });
         else navigation.goBack();
       } else {
@@ -49,7 +55,7 @@ export default function SignupScreen({ navigation, route }) {
             style={[uiStyles.btn, styles.confirmBtn]}
             contentStyle={uiStyles.btnContent}
             labelStyle={uiStyles.btnLabel}
-            onPress={() => navigation.replace('Login')}>
+            onPress={() => (onShowLogin ? onShowLogin() : navigation.replace('Login'))}>
             Go to login
           </Button>
         </EmptyState>
@@ -101,7 +107,7 @@ export default function SignupScreen({ navigation, route }) {
         </Button>
       </SurfaceCard>
 
-      <Button mode="text" onPress={() => navigation.navigate('Login')} textColor={colors.cyanDark} labelStyle={styles.linkLabel} style={styles.linkBtn}>
+      <Button mode="text" onPress={showLogin} textColor={colors.cyanDark} labelStyle={styles.linkLabel} style={styles.linkBtn}>
         Already have an account? Log in
       </Button>
     </KeyboardAwareScrollView>
