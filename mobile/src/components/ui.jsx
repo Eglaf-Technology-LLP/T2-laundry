@@ -84,13 +84,16 @@ export function BrandLogo({ size = 64, style }) {
 // bottom for the next element to sit across its edge (marginTop: -OVERLAP).
 export const HERO_OVERLAP = 28;
 
-export function ScreenHero({ eyebrow, title, subtitle, icon, right, children, overlap = false, bleed = spacing.lg, style }) {
+//
+// `extend` paints navy above the block for scroll screens, where overscroll /
+// iOS bounce would otherwise show a light gap under the navigation header
+// (the ScrollView clips it the rest of the time). Pass extend={false} when
+// the hero is NOT inside a scroll view — unclipped, it would paint over the
+// navigation header and hide its title.
+export function ScreenHero({ eyebrow, title, subtitle, icon, right, children, overlap = false, extend = true, bleed = spacing.lg, style }) {
   return (
     <View style={[styles.hero, { marginHorizontal: -bleed, marginTop: -bleed, paddingHorizontal: bleed + 4 }, overlap && styles.heroOverlap, style]}>
-      {/* Pull-to-overscroll / iOS bounce reveals whatever is above the
-          content — keep it navy so there's never a light gap between the
-          navigation header and this block. */}
-      <View style={styles.heroExtender} pointerEvents="none" />
+      {extend && <View style={styles.heroExtender} pointerEvents="none" />}
       {(!!title || !!icon || !!right) && (
         <View style={styles.heroRow}>
           <View style={styles.flex}>

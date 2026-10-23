@@ -104,7 +104,7 @@ export default function ServicesScreen({ navigation }) {
   const fixedHeader = useMemo(
     () => (
       <View style={styles.header}>
-        <ScreenHero overlap icon="washing-machine" title="What needs care today?" subtitle="Pick items, choose a service, build your order" style={styles.hero} />
+        <ScreenHero overlap extend={false} icon="washing-machine" title="What needs care today?" subtitle="Pick items, choose a service, build your order" style={styles.hero} />
 
         <SearchBar value={query} onChangeText={setQuery} placeholder="Search Kurta, Thobe, Bedsheet…" style={styles.search} />
 
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   columnWrapper: { gap: spacing.md },
   // Pinned above the grid. Padding matches ScreenHero's default bleed so the
   // hero still runs edge to edge; the hairline marks where products scroll under.
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: 2, backgroundColor: colors.bg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderStrong, zIndex: 1 },
+  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: 2, backgroundColor: colors.bg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderStrong },
   hero: { paddingTop: 2 },
   search: { marginTop: -HERO_OVERLAP },
   filterHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: spacing.lg, marginBottom: 2 },
