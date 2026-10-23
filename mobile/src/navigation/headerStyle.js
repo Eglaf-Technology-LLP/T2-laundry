@@ -8,7 +8,7 @@ export const GOLD = colors.gold;
 export const headerScreenOptions = {
   headerStyle: { backgroundColor: NAVY },
   headerTintColor: '#fff',
-  headerTitleStyle: { fontWeight: '700', fontSize: 17 },
+  headerTitleStyle: { fontWeight: '800', fontSize: 18, letterSpacing: 0.2 },
   headerTitleAlign: 'center',
   // A flat navy header reads cleaner than one with a stray shadow line under it.
   headerShadowVisible: false,

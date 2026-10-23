@@ -6,19 +6,23 @@ import { api } from '../../api/client';
 import { useAuth } from '../../lib/AuthContext';
 import { useCart } from '../../lib/CartContext';
 import ItemCard from '../../components/ItemCard';
-import AppTextInput from '../../components/AppTextInput';
+import SearchBar from '../../components/SearchBar';
 import FilterScrollRow from '../../components/FilterScrollRow';
 import { EmptyState } from '../../components/ui';
 import { colors, radius, shadow, spacing, type } from '../../theme/tokens';
 
-const CategoryChip = memo(function CategoryChip({ name, active, onSelect }) {
+const CategoryChip = memo(function CategoryChip({ name, count, active, onSelect }) {
   return (
     <Pressable
       onPress={() => onSelect(name)}
-      style={[styles.chip, active && styles.chipActive]}
+      style={({ pressed }) => [styles.chip, active && styles.chipActive, pressed && !active && styles.chipPressed]}
       accessibilityRole="button"
       accessibilityState={active ? { selected: true } : {}}>
+      {name === 'All' && <Icon source="view-grid-outline" size={15} color={active ? '#fff' : colors.textMuted} />}
       <Text style={[styles.chipText, active && styles.chipTextActive]}>{name}</Text>
+      <View style={[styles.chipCount, active && styles.chipCountActive]}>
+        <Text style={[styles.chipCountText, active && styles.chipCountTextActive]}>{count}</Text>
+      </View>
     </Pressable>
   );
 });
@@ -59,6 +63,17 @@ export default function ServicesScreen({ navigation }) {
     });
   }, [items, activeCat, query]);
 
+  // Per-category item counts for the chip badges (same `active` rule as the list).
+  const catCounts = useMemo(() => {
+    const counts = { All: 0 };
+    items.forEach((it) => {
+      if (!it.active) return;
+      counts.All += 1;
+      counts[it.category] = (counts[it.category] || 0) + 1;
+    });
+    return counts;
+  }, [items]);
+
   const count = lines.reduce((s, l) => s + l.quantity, 0);
   const billedTotal = lines.reduce((s, l) => s + l.price * l.quantity, 0);
 
@@ -76,8 +91,8 @@ export default function ServicesScreen({ navigation }) {
   );
 
   const renderCategory = useCallback(
-    ({ item: c }) => <CategoryChip name={c.name} active={activeCat === c.name} onSelect={setActiveCat} />,
-    [activeCat]
+    ({ item: c }) => <CategoryChip name={c.name} count={catCounts[c.name] || 0} active={activeCat === c.name} onSelect={setActiveCat} />,
+    [activeCat, catCounts]
   );
 
   // Otherwise this rebuilds (and the nested category FlatList re-renders
@@ -87,19 +102,28 @@ export default function ServicesScreen({ navigation }) {
   const listHeader = useMemo(
     () => (
       <View style={styles.header}>
-        <View style={styles.intro}>
-          <Text style={type.h1}>What needs care today?</Text>
-          <Text style={[type.small, styles.subtitle]}>Choose items, pick a service, and build your order</Text>
+        {/* Continues the navy navigation header into a hero block, with the
+            search bar overlapping its bottom edge. */}
+        <View style={styles.hero}>
+          <View style={styles.heroRow}>
+            <View style={styles.grow}>
+              <Text style={styles.heroTitle}>What needs care today?</Text>
+              <Text style={styles.heroSub}>Choose items, pick a service, and build your order</Text>
+            </View>
+            <View style={styles.heroIcon}>
+              <Icon source="washing-machine" size={26} color={colors.cyan} />
+            </View>
+          </View>
         </View>
 
-        <AppTextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search Kurta, Thobe, Bedsheet…"
-          left={<AppTextInput.Icon icon="magnify" />}
-          style={styles.search}
-          returnKeyType="search"
-        />
+        <SearchBar value={query} onChangeText={setQuery} placeholder="Search Kurta, Thobe, Bedsheet…" style={styles.search} />
+
+        <View style={styles.filterHead}>
+          <Text style={styles.filterTitle}>Categories</Text>
+          <Text style={styles.resultText}>
+            {filtered.length} item{filtered.length === 1 ? '' : 's'}{activeCat !== 'All' ? ` in ${activeCat}` : ''}
+          </Text>
+        </View>
 
         <FilterScrollRow
           data={cats}
@@ -109,7 +133,7 @@ export default function ServicesScreen({ navigation }) {
         />
       </View>
     ),
-    [query, cats, renderCategory]
+    [query, cats, renderCategory, filtered.length, activeCat]
   );
 
   return (
@@ -160,14 +184,26 @@ const styles = StyleSheet.create({
   listContent: { padding: spacing.lg, paddingBottom: 110, gap: spacing.md },
   columnWrapper: { gap: spacing.md },
   header: { marginBottom: 4 },
-  intro: { marginBottom: spacing.md },
-  subtitle: { marginTop: 4 },
-  search: { marginTop: 0 },
-  catList: { gap: spacing.sm, paddingVertical: spacing.sm },
-  chip: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  chipActive: { backgroundColor: colors.navy, borderColor: colors.navy },
-  chipText: { fontSize: 13, fontWeight: '600', color: colors.textBody },
+  // Negative margins cancel the list's padding so the hero runs edge to edge.
+  hero: { backgroundColor: colors.navy, marginHorizontal: -spacing.lg, marginTop: -spacing.lg, paddingHorizontal: spacing.xl, paddingTop: spacing.sm, paddingBottom: 46, borderBottomLeftRadius: radius.xxl, borderBottomRightRadius: radius.xxl },
+  heroRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  heroTitle: { color: '#fff', fontSize: 22, lineHeight: 28, fontWeight: '800' },
+  heroSub: { color: colors.onDarkMuted, fontSize: 13, marginTop: 4 },
+  heroIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+  search: { marginTop: -26 },
+  filterHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: spacing.xl, marginBottom: 2 },
+  filterTitle: { ...type.h3 },
+  resultText: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
+  catList: { gap: spacing.sm, paddingVertical: spacing.sm, paddingHorizontal: 2 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingLeft: 14, paddingRight: 6, borderRadius: radius.pill, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  chipActive: { backgroundColor: colors.navy, borderColor: colors.navy, ...shadow.card },
+  chipPressed: { backgroundColor: colors.navySoft },
+  chipText: { fontSize: 13, fontWeight: '700', color: colors.textBody },
   chipTextActive: { color: '#fff' },
+  chipCount: { minWidth: 24, height: 24, borderRadius: 12, paddingHorizontal: 6, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  chipCountActive: { backgroundColor: colors.cyan },
+  chipCountText: { fontSize: 11, fontWeight: '800', color: colors.textMuted },
+  chipCountTextActive: { color: colors.navy },
   loader: { paddingVertical: 60 },
   cartBar: { position: 'absolute', bottom: spacing.lg, left: spacing.lg, right: spacing.lg, backgroundColor: colors.navy, borderRadius: radius.xl, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: spacing.md, ...shadow.raised },
   cartBarPressed: { opacity: 0.92 },

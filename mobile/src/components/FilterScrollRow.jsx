@@ -1,7 +1,7 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
 import { IconButton } from 'react-native-paper';
-import { colors } from '../theme/tokens';
+import { colors, shadow } from '../theme/tokens';
 
 const NAVY = colors.navy;
 
@@ -30,15 +30,19 @@ const FilterScrollRow = forwardRef(function FilterScrollRow(
   const goPrev = () => scrollToIndex({ index: Math.max(0, visibleRange.first - 1), animated: true, viewPosition: 0 });
   const goNext = () => scrollToIndex({ index: Math.min(data.length - 1, visibleRange.last + 1), animated: true, viewPosition: 1 });
 
+  const atStart = visibleRange.first <= 0;
+  const atEnd = visibleRange.last >= data.length - 1;
+
   return (
     <View style={[styles.row, style]}>
       <IconButton
         icon="chevron-left"
-        size={28}
+        size={18}
         iconColor={NAVY}
-        disabled={visibleRange.first <= 0}
+        disabled={atStart}
         onPress={goPrev}
-        style={[styles.navBtn, styles.navBtnLeft]}
+        style={[styles.navBtn, atStart && styles.navBtnOff]}
+        accessibilityLabel="Scroll filters left"
       />
       <FlatList
         ref={listRef}
@@ -57,11 +61,12 @@ const FilterScrollRow = forwardRef(function FilterScrollRow(
       />
       <IconButton
         icon="chevron-right"
-        size={28}
+        size={18}
         iconColor={NAVY}
-        disabled={visibleRange.last >= data.length - 1}
+        disabled={atEnd}
         onPress={goNext}
-        style={[styles.navBtn, styles.navBtnRight]}
+        style={[styles.navBtn, atEnd && styles.navBtnOff]}
+        accessibilityLabel="Scroll filters right"
       />
     </View>
   );
@@ -70,9 +75,10 @@ const FilterScrollRow = forwardRef(function FilterScrollRow(
 export default FilterScrollRow;
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   list: { flex: 1 },
-  navBtn: { margin: 0 },
-  navBtnLeft: { marginLeft: -8 },
-  navBtnRight: { marginRight: -8 },
+  // Small round "stepper" buttons; once an end of the row is fully in view
+  // its button fades out (but keeps its space so the chips don't jump).
+  navBtn: { margin: 0, width: 32, height: 32, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, ...shadow.card },
+  navBtnOff: { opacity: 0.35, elevation: 0, shadowOpacity: 0 },
 });
