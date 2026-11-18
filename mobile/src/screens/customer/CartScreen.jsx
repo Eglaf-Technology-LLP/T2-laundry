@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, ScrollView, StyleSheet, Pressable, Platform, Keyboard } from 'react-native';
+import { View, ScrollView, StyleSheet, Pressable, Platform } from 'react-native';
 import { Text, Button, IconButton, Icon } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { format, parseISO } from 'date-fns';
 import AppTextInput from '../../components/AppTextInput';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { api } from '../../api/client';
@@ -30,8 +31,14 @@ function withPlanSplit(lines, planState) {
   });
 }
 
+// Local calendar date as YYYY-MM-DD. toISOString() is UTC, which in Qatar
+// (UTC+3) rolls a date picked between midnight and 3am back to yesterday.
+function toLocalISO(date) {
+  return format(date, 'yyyy-MM-dd');
+}
+
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalISO(new Date());
 }
 
 function CartLines({ splitLines, changeQty, removeLine }) {
@@ -76,15 +83,6 @@ export default function CartScreen({ navigation }) {
   const [addingAddress, setAddingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({ label: '', address_text: '' });
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
-
-  // The pinned checkout bar steps aside while typing, so it doesn't sit on
-  // top of the keyboard eating the space the form needs.
-  useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
-    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
-    return () => { show.remove(); hide.remove(); };
-  }, []);
 
   const splitLines = useMemo(() => withPlanSplit(lines, planState), [lines, planState]);
   const total = lines.reduce((s, l) => s + l.price * l.quantity, 0);
@@ -92,6 +90,23 @@ export default function CartScreen({ navigation }) {
   const planSavings = total - billedTotal;
   const membership = planState?.membership;
   const isPastDate = form.pickup_date && form.pickup_date < todayISO();
+
+  // First unmet checkout requirement, or null when the order can be placed.
+  // Drives both the Confirm button's enabled state and the hint above it,
+  // so the customer always sees why it's disabled. pickup_date is required
+  // because create_order takes a `date` — an empty string fails server-side.
+  const needsAddress = form.pickup_type === 'pickup';
+  const blocker = !form.pickup_date
+    ? 'Select a delivery date'
+    : isPastDate
+      ? 'Pick today or a future date'
+      : !form.customer_name.trim()
+        ? 'Enter your full name'
+        : !form.customer_phone.trim()
+          ? 'Enter your phone number'
+          : needsAddress && !form.address.trim()
+            ? 'Save a pickup address'
+            : null;
 
   useEffect(() => {
     if (!profile) return;
@@ -131,17 +146,17 @@ export default function CartScreen({ navigation }) {
   };
 
   const submit = async () => {
-    if (!form.customer_name || !form.customer_phone || isPastDate) return;
+    if (blocker || submitting) return;
     setSubmitting(true);
     try {
       const orderItems = lines.map((l) => ({ item_id: l.id, name: l.name, category: l.category, service: l.serviceLabel, quantity: l.quantity, price: l.price }));
       const code = 'T2-' + Math.random().toString(36).slice(2, 8).toUpperCase();
       const created = await api.entities.Order.create({
         order_code: code,
-        customer_name: form.customer_name,
-        customer_phone: form.customer_phone,
+        customer_name: form.customer_name.trim(),
+        customer_phone: form.customer_phone.trim(),
         customer_email: '',
-        address: form.address,
+        address: needsAddress ? form.address : '',
         pickup_type: form.pickup_type,
         pickup_date: form.pickup_date,
         pickup_slot: form.pickup_slot,
@@ -153,8 +168,10 @@ export default function CartScreen({ navigation }) {
       });
       setPlaced({ code, id: created.id });
       clear();
-    } catch {
-      setPlaced({ code: 'ERROR' });
+    } catch (e) {
+      // Keep the server's reason — a bare "Something went wrong" hid every
+      // checkout failure until now.
+      setPlaced({ code: 'ERROR', message: e?.message });
     } finally {
       setSubmitting(false);
     }
@@ -167,7 +184,9 @@ export default function CartScreen({ navigation }) {
         <EmptyState
           icon={failed ? 'alert-circle-outline' : 'check-circle-outline'}
           title={failed ? 'Something went wrong' : 'Order placed!'}
-          message={failed ? undefined : "We'll send confirmation shortly. Track your garment's journey anytime."}>
+          message={failed
+            ? `Your order was not placed${placed.message ? `: ${placed.message}` : '.'} Your cart is saved — please try again.`
+            : "We'll send confirmation shortly. Track your garment's journey anytime."}>
           {!failed && (
             <View style={styles.codeBox}>
               <Text style={styles.codeLabel}>Your order code</Text>
@@ -180,7 +199,7 @@ export default function CartScreen({ navigation }) {
                 Track My Order
               </Button>
             )}
-            <Button mode="contained" style={uiStyles.btn} contentStyle={uiStyles.btnContent} labelStyle={uiStyles.btnLabel} onPress={() => { setPlaced(null); goToTab(navigation, 'Services'); }}>
+            <Button mode="contained" style={uiStyles.btn} contentStyle={uiStyles.btnContent} labelStyle={uiStyles.btnLabel} onPress={() => { setPlaced(null); if (!failed) goToTab(navigation, 'Services'); }}>
               {failed ? 'Back to cart' : 'Place another order'}
             </Button>
           </View>
@@ -225,8 +244,6 @@ export default function CartScreen({ navigation }) {
       </View>
     );
   }
-
-  const canSubmit = !submitting && !!form.customer_name && !!form.customer_phone && !isPastDate;
 
   return (
     <View style={uiStyles.screen}>
@@ -273,19 +290,28 @@ export default function CartScreen({ navigation }) {
             })}
           </View>
 
-          <Pressable onPress={() => setShowDatePicker(true)}>
-            <AppTextInput label="Delivery date" value={form.pickup_date} editable={false} placeholder="Select a date" left={<AppTextInput.Icon icon="calendar" />} style={styles.input} />
+          {/* pointerEvents="none": a TextInput claims the touch responder even
+              when not editable, so without it taps never reached this
+              Pressable and the picker didn't open — leaving pickup_date empty. */}
+          <Pressable onPress={() => setShowDatePicker((v) => !v)} accessibilityRole="button" accessibilityLabel="Select delivery date">
+            <View pointerEvents="none">
+              <AppTextInput label="Delivery date" value={form.pickup_date} editable={false} placeholder="Select a date" left={<AppTextInput.Icon icon="calendar" />} style={styles.input} />
+            </View>
           </Pressable>
           {isPastDate && <Text style={styles.error}>Pick today or a future date.</Text>}
           {showDatePicker && (
             <DateTimePicker
-              value={form.pickup_date ? new Date(form.pickup_date) : new Date()}
+              value={form.pickup_date ? parseISO(form.pickup_date) : new Date()}
               mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              themeVariant="light"
+              accentColor={colors.cyanDark}
               minimumDate={new Date()}
-              onChange={(event, date) => {
-                setShowDatePicker(Platform.OS === 'ios');
-                if (date) update('pickup_date', date.toISOString().slice(0, 10));
+              onValueChange={(_, date) => {
+                setShowDatePicker(false);
+                update('pickup_date', toLocalISO(date));
               }}
+              onDismiss={() => setShowDatePicker(false)}
             />
           )}
 
@@ -380,10 +406,17 @@ export default function CartScreen({ navigation }) {
         </SurfaceCard>
       </KeyboardAwareScrollView>
 
-      {/* Pinned so the total and Confirm button are always one tap away,
-          however far down the checkout form the customer has scrolled. */}
-      {!keyboardOpen && (
-        <View style={[styles.checkoutBar, { paddingBottom: spacing.md + insets.bottom }]}>
+      {/* Always pinned so the total and Confirm button are one tap away,
+          however far down the checkout form the customer has scrolled. The
+          button only toggles enabled/disabled; the hint says what's missing. */}
+      <View style={[styles.checkoutBar, { paddingBottom: spacing.md + insets.bottom }]}>
+        {!!blocker && (
+          <View style={styles.barHint}>
+            <Icon source="information-outline" size={14} color={colors.gold} />
+            <Text style={styles.barHintText}>{blocker} to confirm your order</Text>
+          </View>
+        )}
+        <View style={styles.barRow}>
           <View>
             <Text style={styles.barLabel}>Total</Text>
             <Text style={styles.totalText}>{billedTotal} QAR</Text>
@@ -393,19 +426,27 @@ export default function CartScreen({ navigation }) {
             icon="check-circle-outline"
             onPress={submit}
             loading={submitting}
-            disabled={!canSubmit}
+            disabled={!!blocker || submitting}
             buttonColor={colors.cyan}
             textColor={colors.navy}
+            theme={CONFIRM_DISABLED_THEME}
             style={[uiStyles.btn, styles.confirmBtn]}
             contentStyle={uiStyles.btnContent}
             labelStyle={uiStyles.btnLabel}>
             {submitting ? 'Placing order…' : 'Confirm Order'}
           </Button>
         </View>
-      )}
+      </View>
     </View>
   );
 }
+
+// Paper paints disabled buttons with the theme's near-transparent grey, which
+// vanishes against the navy checkout bar — override it so a disabled Confirm
+// stays clearly visible, just muted.
+const CONFIRM_DISABLED_THEME = {
+  colors: { surfaceDisabled: 'rgba(255,255,255,0.18)', onSurfaceDisabled: 'rgba(255,255,255,0.7)' },
+};
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
@@ -460,7 +501,10 @@ const styles = StyleSheet.create({
   totalRow: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.md, marginTop: spacing.md },
   totalLabel: { color: colors.navy, fontSize: 16, fontWeight: '800' },
 
-  checkoutBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, backgroundColor: colors.navy, paddingHorizontal: spacing.xl, paddingTop: spacing.md, borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, ...shadow.raised },
+  checkoutBar: { backgroundColor: colors.navy, paddingHorizontal: spacing.xl, paddingTop: spacing.md, borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, ...shadow.raised },
+  barRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  barHint: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.sm },
+  barHintText: { color: colors.gold, fontSize: 12, fontWeight: '600', flex: 1 },
   barLabel: { color: colors.onDarkMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
   totalText: { fontSize: 22, fontWeight: '800', color: colors.gold },
   confirmBtn: { flex: 1 },
