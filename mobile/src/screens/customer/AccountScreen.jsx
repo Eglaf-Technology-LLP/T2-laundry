@@ -6,6 +6,7 @@ import AppTextInput from '../../components/AppTextInput';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../api/client';
+import { formatDate } from '../../lib/date';
 import { ErrorBanner, IconTile, SectionTitle, StatusPill, SurfaceCard, ScreenHero, HERO_OVERLAP, uiStyles } from '../../components/ui';
 import { colors, radius, spacing, type } from '../../theme/tokens';
 
@@ -237,7 +238,7 @@ export default function AccountScreen({ navigation }) {
             <View style={styles.memberBox}>
               <View style={styles.flex}>
                 <Text style={styles.memberName}>{membership.plan_name}</Text>
-                <Text style={styles.memberDates}>{membership.start_date} → {membership.end_date || '—'}</Text>
+                <Text style={styles.memberDates}>{formatDate(membership.start_date)} → {formatDate(membership.end_date) || '—'}</Text>
               </View>
               <View style={styles.pillStack}>
                 <StatusPill status={membership.payment_status} />
@@ -290,7 +291,7 @@ export default function AccountScreen({ navigation }) {
             <IconTile icon="package-variant-closed" size={38} tone="navy" />
             <View style={styles.flex}>
               <Text style={styles.navyBold}>{o.order_code}</Text>
-              <Text style={styles.dim}>{o.created_date?.slice(0, 10)}</Text>
+              <Text style={styles.dim}>{formatDate(o.created_date)}</Text>
             </View>
             <View style={styles.orderRight}>
               <Text style={styles.orderTotal}>{o.total} QAR</Text>

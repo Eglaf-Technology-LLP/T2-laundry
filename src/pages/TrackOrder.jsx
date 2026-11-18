@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Search, PackageCheck, Truck, ClipboardList, Sparkles, Home } from "lucide-react";
 import { api } from "@/api/client";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/lib/date";
 
 const STAGES = [
   { key: "pending", label: "Order Placed", icon: ClipboardList },
@@ -114,7 +115,7 @@ export default function TrackOrder() {
             <div className="rounded-2xl bg-white p-4">
               <p className="font-mono-label text-[10px] text-foreground/40">Pickup</p>
               <p className="mt-1 font-medium capitalize">{order.pickup_type} · {order.pickup_slot}</p>
-              {order.pickup_date && <p className="text-foreground/50">{order.pickup_date}</p>}
+              {order.pickup_date && <p className="text-foreground/50">{formatDate(order.pickup_date)}</p>}
             </div>
             <div className="rounded-2xl bg-white p-4">
               <p className="font-mono-label text-[10px] text-foreground/40">Customer</p>

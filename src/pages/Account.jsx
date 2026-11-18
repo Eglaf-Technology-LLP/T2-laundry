@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { User, Crown, Package, ArrowUpCircle, AlertCircle, MapPin, Plus, Trash2, Star } from "lucide-react";
 import { api } from "@/api/client";
 import { useAuth } from "@/lib/AuthContext";
+import { formatDate } from "@/lib/date";
 import PlanConfirmationModal from "@/components/PlanConfirmationModal";
 
 const STATUS_STYLE = {
@@ -223,7 +224,7 @@ export default function Account() {
               <div className="mt-4 flex items-center justify-between">
                 <div>
                   <p className="text-lg font-bold" style={{ color: "hsl(var(--navy))" }}>{membership.plan_name}</p>
-                  <p className="text-xs text-foreground/50">{membership.start_date} → {membership.end_date || "—"}</p>
+                  <p className="text-xs text-foreground/50">{formatDate(membership.start_date)} → {formatDate(membership.end_date) || "—"}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${membership.payment_status === "paid" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{membership.payment_status}</span>
@@ -285,7 +286,7 @@ export default function Account() {
               <div key={o.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 rounded-xl bg-muted/40 px-4 py-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="font-mono text-sm font-semibold shrink-0 whitespace-nowrap" style={{ color: "hsl(var(--navy))" }}>{o.order_code}</span>
-                  <span className="text-xs text-foreground/50">{o.created_date?.slice(0, 10)}</span>
+                  <span className="text-xs text-foreground/50">{formatDate(o.created_date)}</span>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-sm font-semibold" style={{ color: "hsl(var(--gold-dark))" }}>{o.total} QAR</span>

@@ -4,6 +4,7 @@ import { Text, Chip, Portal, Modal, Button, IconButton, ActivityIndicator, Card,
 import AppTextInput from '../../components/AppTextInput';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../../api/client';
+import { formatDate } from '../../lib/date';
 import { colors, shadow } from '../../theme/tokens';
 
 const NAVY = colors.navy;
@@ -114,7 +115,7 @@ export default function AdminMembersScreen() {
 
             <View style={[styles.row, { marginTop: 10 }]}>
               <Text style={vipPlanNames.has(m.plan_name) ? styles.gold : styles.navyBold}>{vipPlanNames.has(m.plan_name) ? '👑 ' : ''}{m.plan_name}</Text>
-              <Text style={styles.dim}>{m.start_date} → {m.end_date || '—'}</Text>
+              <Text style={styles.dim}>{formatDate(m.start_date)} → {formatDate(m.end_date) || '—'}</Text>
             </View>
 
             <View style={[styles.rowGap, { marginTop: 8 }]}>

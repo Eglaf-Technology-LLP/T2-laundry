@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Plus, X, Crown, Trash2, Search, CheckCircle2 } from "lucide-react";
 import { api } from "@/api/client";
+import { formatDate } from "@/lib/date";
 
 const STATUS_STYLE = {
   active: "bg-emerald-100 text-emerald-700",
@@ -113,7 +114,7 @@ export default function AdminMembers() {
               <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={vipPlanNames.has(m.plan_name) ? { color: "hsl(var(--gold-dark))" } : { color: "hsl(var(--navy))" }}>
                 {vipPlanNames.has(m.plan_name) && <Crown className="h-3.5 w-3.5" />} {m.plan_name}
               </span>
-              <span className="text-xs text-foreground/50">{m.start_date} → {m.end_date || "—"}</span>
+              <span className="text-xs text-foreground/50">{formatDate(m.start_date)} → {formatDate(m.end_date) || "—"}</span>
             </div>
 
             <div className="mt-3 flex items-center gap-2">

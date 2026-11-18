@@ -3,6 +3,7 @@ import { View, ScrollView, StyleSheet } from 'react-native';
 import { Text, Button, ActivityIndicator, Icon } from 'react-native-paper';
 import AppTextInput from '../../components/AppTextInput';
 import { api } from '../../api/client';
+import { formatDate } from '../../lib/date';
 import { ErrorBanner, IconTile, StatusPill, SurfaceCard, ScreenHero, HERO_OVERLAP, uiStyles } from '../../components/ui';
 import { colors, radius, spacing, type, ORDER_STATUS } from '../../theme/tokens';
 
@@ -143,7 +144,7 @@ export default function TrackOrderScreen({ navigation, route }) {
               <IconTile icon="truck-outline" size={34} tone="navy" />
               <Text style={[styles.summaryLabel, styles.metaLabel]}>Pickup</Text>
               <Text style={styles.metaValue}>{order.pickup_type} · {order.pickup_slot}</Text>
-              {!!order.pickup_date && <Text style={styles.itemMeta}>{order.pickup_date}</Text>}
+              {!!order.pickup_date && <Text style={styles.itemMeta}>{formatDate(order.pickup_date)}</Text>}
             </SurfaceCard>
             <SurfaceCard style={styles.metaBox}>
               <IconTile icon="account-outline" size={34} tone="navy" />
