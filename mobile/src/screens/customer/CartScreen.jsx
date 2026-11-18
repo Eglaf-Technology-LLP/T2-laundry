@@ -3,7 +3,7 @@ import { View, ScrollView, StyleSheet, Pressable, Platform } from 'react-native'
 import { Text, Button, IconButton, Icon } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { format, parseISO } from 'date-fns';
+import { addDays, parseISO } from 'date-fns';
 import AppTextInput from '../../components/AppTextInput';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { api } from '../../api/client';
@@ -11,9 +11,36 @@ import { useAuth } from '../../lib/AuthContext';
 import { useCart } from '../../lib/CartContext';
 import { goToTab } from '../../navigation/goToTab';
 import { EmptyState, IconTile, SurfaceCard, uiStyles } from '../../components/ui';
+import { formatDate, toISODate } from '../../lib/date';
 import { colors, radius, shadow, spacing, type } from '../../theme/tokens';
 
-const SLOTS = ['08:00 – 10:00', '10:00 – 12:00', '12:00 – 14:00', '14:00 – 16:00', '16:00 – 18:00', '18:00 – 20:00'];
+// `label` is what gets stored as the order's pickup_slot; start/end are the
+// slot's hours, used to grey out slots that are already over today.
+const SLOTS = [8, 10, 12, 14, 16, 18].map((start) => ({
+  start,
+  end: start + 2,
+  label: `${String(start).padStart(2, '0')}:00 – ${String(start + 2).padStart(2, '0')}:00`,
+}));
+
+// A slot is over once its end time has passed — only possible for today.
+// The slot running right now stays open (and is the one preselected).
+function isSlotOver(slot, dateISO, now) {
+  return dateISO === toISODate(now) && now.getHours() * 60 + now.getMinutes() >= slot.end * 60;
+}
+
+// Earliest slot still open on that date: the one running right now (or the
+// next one) for today, the first slot of the day for any later date.
+function firstOpenSlot(dateISO, now) {
+  return SLOTS.find((slot) => !isSlotOver(slot, dateISO, now)) || null;
+}
+
+// Prefill: today with its current slot, or tomorrow once today's last slot
+// is over.
+function initialSchedule(now) {
+  const today = toISODate(now);
+  const slot = firstOpenSlot(today, now);
+  return slot ? { date: today, slot: slot.label } : { date: toISODate(addDays(now, 1)), slot: SLOTS[0].label };
+}
 
 // Mirrors the web app's create_order usage-tracking so the total shown here
 // matches what the server will actually bill.
@@ -29,16 +56,6 @@ function withPlanSplit(lines, planState) {
     itemsRemaining -= freeQty;
     return { ...l, freeQty, extraQty: l.quantity - freeQty };
   });
-}
-
-// Local calendar date as YYYY-MM-DD. toISOString() is UTC, which in Qatar
-// (UTC+3) rolls a date picked between midnight and 3am back to yesterday.
-function toLocalISO(date) {
-  return format(date, 'yyyy-MM-dd');
-}
-
-function todayISO() {
-  return toLocalISO(new Date());
 }
 
 function CartLines({ splitLines, changeQty, removeLine }) {
@@ -78,18 +95,42 @@ export default function CartScreen({ navigation }) {
   const { lines, planState, changeQty, removeLine, clear } = useCart();
   const [placed, setPlaced] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ pickup_type: 'pickup', pickup_date: '', pickup_slot: SLOTS[0], customer_name: '', customer_phone: '', address: '', notes: '' });
+  const [form, setForm] = useState(() => {
+    const schedule = initialSchedule(new Date());
+    return { pickup_type: 'pickup', pickup_date: schedule.date, pickup_slot: schedule.slot, customer_name: '', customer_phone: '', address: '', notes: '' };
+  });
   const [addresses, setAddresses] = useState([]);
   const [addingAddress, setAddingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({ label: '', address_text: '' });
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Re-evaluated every minute so a slot that ends while the customer is
+  // filling the form greys out (and the selection moves on) without a reload.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const splitLines = useMemo(() => withPlanSplit(lines, planState), [lines, planState]);
   const total = lines.reduce((s, l) => s + l.price * l.quantity, 0);
   const billedTotal = splitLines.reduce((s, l) => s + l.extraQty * l.price, 0);
   const planSavings = total - billedTotal;
   const membership = planState?.membership;
-  const isPastDate = form.pickup_date && form.pickup_date < todayISO();
+  const todayISO = toISODate(now);
+  const isPastDate = form.pickup_date && form.pickup_date < todayISO;
+  // Once today's last slot is over, the earliest bookable date is tomorrow.
+  const minDate = firstOpenSlot(todayISO, now) ? now : addDays(now, 1);
+  const selectedSlot = SLOTS.find((s) => s.label === form.pickup_slot);
+  const slotOver = !selectedSlot || isSlotOver(selectedSlot, form.pickup_date, now);
+
+  // Keep the selected slot bookable: switching back to today (or the clock
+  // passing the slot's end) moves it to the slot running now / the next one.
+  useEffect(() => {
+    if (!slotOver) return;
+    const next = firstOpenSlot(form.pickup_date, now);
+    if (next) setForm((f) => ({ ...f, pickup_slot: next.label }));
+  }, [slotOver, form.pickup_date, now]);
 
   // First unmet checkout requirement, or null when the order can be placed.
   // Drives both the Confirm button's enabled state and the hint above it,
@@ -100,13 +141,15 @@ export default function CartScreen({ navigation }) {
     ? 'Select a delivery date'
     : isPastDate
       ? 'Pick today or a future date'
-      : !form.customer_name.trim()
-        ? 'Enter your full name'
-        : !form.customer_phone.trim()
-          ? 'Enter your phone number'
-          : needsAddress && !form.address.trim()
-            ? 'Save a pickup address'
-            : null;
+      : slotOver
+        ? 'Pick another date — no time slots left today'
+        : !form.customer_name.trim()
+          ? 'Enter your full name'
+          : !form.customer_phone.trim()
+            ? 'Enter your phone number'
+            : needsAddress && !form.address.trim()
+              ? 'Save a pickup address'
+              : null;
 
   useEffect(() => {
     if (!profile) return;
@@ -295,21 +338,21 @@ export default function CartScreen({ navigation }) {
               Pressable and the picker didn't open — leaving pickup_date empty. */}
           <Pressable onPress={() => setShowDatePicker((v) => !v)} accessibilityRole="button" accessibilityLabel="Select delivery date">
             <View pointerEvents="none">
-              <AppTextInput label="Delivery date" value={form.pickup_date} editable={false} placeholder="Select a date" left={<AppTextInput.Icon icon="calendar" />} style={styles.input} />
+              <AppTextInput label="Delivery date" value={formatDate(form.pickup_date)} editable={false} placeholder="Select a date" left={<AppTextInput.Icon icon="calendar" />} style={styles.input} />
             </View>
           </Pressable>
           {isPastDate && <Text style={styles.error}>Pick today or a future date.</Text>}
           {showDatePicker && (
             <DateTimePicker
-              value={form.pickup_date ? parseISO(form.pickup_date) : new Date()}
+              value={form.pickup_date ? parseISO(form.pickup_date) : minDate}
               mode="date"
               display={Platform.OS === 'ios' ? 'inline' : 'default'}
               themeVariant="light"
               accentColor={colors.cyanDark}
-              minimumDate={new Date()}
+              minimumDate={minDate}
               onValueChange={(_, date) => {
                 setShowDatePicker(false);
-                update('pickup_date', toLocalISO(date));
+                update('pickup_date', toISODate(date));
               }}
               onDismiss={() => setShowDatePicker(false)}
             />
@@ -318,15 +361,17 @@ export default function CartScreen({ navigation }) {
           <Text style={styles.fieldLabel}>Time slot</Text>
           <View style={styles.slotGrid}>
             {SLOTS.map((slot) => {
-              const active = form.pickup_slot === slot;
+              const active = form.pickup_slot === slot.label;
+              const over = isSlotOver(slot, form.pickup_date, now);
               return (
                 <Pressable
-                  key={slot}
-                  onPress={() => update('pickup_slot', slot)}
-                  style={[styles.slot, active && styles.slotActive]}
+                  key={slot.label}
+                  onPress={() => update('pickup_slot', slot.label)}
+                  disabled={over}
+                  style={[styles.slot, active && styles.slotActive, over && styles.slotOver]}
                   accessibilityRole="button"
-                  accessibilityState={active ? { selected: true } : {}}>
-                  <Text style={[styles.slotText, active && styles.slotTextActive]}>{slot}</Text>
+                  accessibilityState={{ selected: active, disabled: over }}>
+                  <Text style={[styles.slotText, active && styles.slotTextActive, over && styles.slotTextOver]}>{slot.label}</Text>
                 </Pressable>
               );
             })}
@@ -484,6 +529,8 @@ const styles = StyleSheet.create({
   slotActive: { borderColor: colors.cyanDark, backgroundColor: colors.cyanSoft },
   slotText: { fontSize: 13, fontWeight: '600', color: colors.textBody },
   slotTextActive: { color: colors.navy, fontWeight: '800' },
+  slotOver: { backgroundColor: colors.surfaceMuted, borderColor: colors.border, opacity: 0.55 },
+  slotTextOver: { color: colors.textFaint, textDecorationLine: 'line-through' },
 
   addrList: { gap: spacing.sm },
   addrCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: spacing.md, borderRadius: radius.md, borderWidth: 1.2, borderColor: colors.border, backgroundColor: colors.surface },
