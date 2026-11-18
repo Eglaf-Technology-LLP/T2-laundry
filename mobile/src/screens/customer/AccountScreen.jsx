@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { Text, Button, IconButton, ActivityIndicator, Portal, Modal, Icon } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AppTextInput from '../../components/AppTextInput';
@@ -287,7 +287,12 @@ export default function AccountScreen({ navigation }) {
       <SurfaceCard style={styles.card}>
         <SectionTitle title="Past orders" right={<IconTile icon="history" size={32} tone="navy" />} />
         {orders.map((o) => (
-          <View key={o.id} style={styles.orderRow}>
+          <Pressable
+            key={o.id}
+            onPress={() => navigation.navigate('Track', { code: o.order_code })}
+            style={({ pressed }) => [styles.orderRow, pressed && styles.orderRowPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={`Track order ${o.order_code}`}>
             <IconTile icon="package-variant-closed" size={38} tone="navy" />
             <View style={styles.flex}>
               <Text style={styles.navyBold}>{o.order_code}</Text>
@@ -297,7 +302,8 @@ export default function AccountScreen({ navigation }) {
               <Text style={styles.orderTotal}>{o.total} QAR</Text>
               <StatusPill status={o.status} label={o.status.replace('_', ' ')} />
             </View>
-          </View>
+            <Icon source="chevron-right" size={20} color={colors.textFaint} />
+          </Pressable>
         ))}
         {!orders.length && <Text style={styles.emptyText}>No orders yet — this only shows orders placed while logged in.</Text>}
       </SurfaceCard>
@@ -365,6 +371,7 @@ const styles = StyleSheet.create({
   noMember: { alignItems: 'stretch', paddingVertical: spacing.sm },
 
   orderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surfaceMuted, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.sm, borderWidth: 1, borderColor: colors.border },
+  orderRowPressed: { opacity: 0.85 },
   orderRight: { alignItems: 'flex-end', gap: 4 },
   orderTotal: { color: colors.navy, fontWeight: '800', fontSize: 13 },
 

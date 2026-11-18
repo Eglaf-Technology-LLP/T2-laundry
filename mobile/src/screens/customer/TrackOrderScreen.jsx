@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { Text, Button, ActivityIndicator, Icon } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 import AppTextInput from '../../components/AppTextInput';
 import { api } from '../../api/client';
+import { useAuth } from '../../lib/AuthContext';
 import { formatDate } from '../../lib/date';
 import { ErrorBanner, IconTile, StatusPill, SurfaceCard, ScreenHero, HERO_OVERLAP, uiStyles } from '../../components/ui';
 import { colors, radius, spacing, type, ORDER_STATUS } from '../../theme/tokens';
@@ -17,10 +19,41 @@ const STAGES = [
 ];
 
 export default function TrackOrderScreen({ navigation, route }) {
+  const { isAuthenticated, profile } = useAuth();
+  const scrollRef = useRef(null);
   const [code, setCode] = useState('');
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [myOrders, setMyOrders] = useState([]);
+  const [myOrdersLoaded, setMyOrdersLoaded] = useState(false);
+
+  // Logged-in customers pick from their own orders instead of typing a code.
+  // Refetched on focus so a just-placed order and fresh statuses show up.
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAuthenticated || !profile) {
+        setMyOrders([]);
+        setMyOrdersLoaded(false);
+        return undefined;
+      }
+      let live = true;
+      api.entities.Order.filter({ user_id: profile.id })
+        .then((rows) => {
+          if (live) setMyOrders([...rows].sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));
+        })
+        .catch(() => {})
+        .finally(() => { if (live) setMyOrdersLoaded(true); });
+      return () => { live = false; };
+    }, [isAuthenticated, profile])
+  );
+
+  const openOrder = (o) => {
+    setError('');
+    setCode(o.order_code);
+    setOrder(o);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  };
 
   const track = async (value = code) => {
     if (!value.trim()) return;
@@ -51,36 +84,82 @@ export default function TrackOrderScreen({ navigation, route }) {
 
   const currentIndex = order ? STAGES.findIndex((s) => s.key === order.status) : -1;
 
+  // Logged in with an order open: the list and code search step aside for a
+  // way back to the list, so the tracking details start at the top.
+  const showingMine = isAuthenticated && !!order;
+
   return (
-    <ScrollView style={uiStyles.screen} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <ScreenHero overlap icon="map-marker-path" title="Track your order" subtitle="Enter your order code to follow your garment's journey" />
+    <ScrollView ref={scrollRef} style={uiStyles.screen} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScreenHero
+        overlap
+        icon="map-marker-path"
+        title="Track your order"
+        subtitle={isAuthenticated ? 'Tap an order to follow its journey' : "Enter your order code to follow your garment's journey"}
+      />
 
-      <SurfaceCard style={styles.searchCard}>
+      {showingMine && (
+        <SurfaceCard style={styles.topCard}>
+          <Pressable onPress={() => setOrder(null)} style={({ pressed }) => [styles.backRow, pressed && styles.pressed]} accessibilityRole="button">
+            <Icon source="arrow-left" size={20} color={colors.cyanDark} />
+            <Text style={styles.backText}>All my orders</Text>
+          </Pressable>
+        </SurfaceCard>
+      )}
 
-        <AppTextInput
-          label="Order code"
-          value={code}
-          onChangeText={setCode}
-          autoCapitalize="characters"
-          placeholder="e.g. T2-AB12CD"
-          style={styles.input}
-          left={<AppTextInput.Icon icon="pound" />}
-          onSubmitEditing={() => track()}
-          returnKeyType="search"
-        />
-        <Button
-          mode="contained"
-          icon="magnify"
-          onPress={() => track()}
-          loading={loading}
-          disabled={loading || !code.trim()}
-          style={uiStyles.btn}
-          contentStyle={uiStyles.btnContent}
-          labelStyle={uiStyles.btnLabel}>
-          Track
-        </Button>
-        <ErrorBanner message={error} style={styles.error} />
-      </SurfaceCard>
+      {isAuthenticated && !order && (
+        <SurfaceCard style={styles.topCard}>
+          <Text style={[type.h3, styles.sectionTitle]}>Your orders</Text>
+          {!myOrdersLoaded && <ActivityIndicator color={colors.navy} />}
+          {myOrders.map((o) => (
+            <Pressable
+              key={o.id}
+              onPress={() => openOrder(o)}
+              style={({ pressed }) => [styles.orderRow, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel={`Track order ${o.order_code}`}>
+              <IconTile icon="package-variant-closed" size={38} tone="navy" />
+              <View style={styles.flex}>
+                <Text style={styles.itemName}>{o.order_code}</Text>
+                <Text style={styles.itemMeta}>{formatDate(o.created_date)} · {o.total} QAR</Text>
+              </View>
+              <StatusPill status={o.status} />
+              <Icon source="chevron-right" size={20} color={colors.textFaint} />
+            </Pressable>
+          ))}
+          {myOrdersLoaded && !myOrders.length && (
+            <Text style={styles.itemMeta}>No orders yet — orders you place while logged in show up here.</Text>
+          )}
+        </SurfaceCard>
+      )}
+
+      {!showingMine && (
+        <SurfaceCard style={[styles.searchCard, isAuthenticated ? styles.section : styles.topCard]}>
+          {isAuthenticated && <Text style={[type.h3, styles.sectionTitle]}>Track by order code</Text>}
+          <AppTextInput
+            label="Order code"
+            value={code}
+            onChangeText={setCode}
+            autoCapitalize="characters"
+            placeholder="e.g. T2-AB12CD"
+            style={styles.input}
+            left={<AppTextInput.Icon icon="pound" />}
+            onSubmitEditing={() => track()}
+            returnKeyType="search"
+          />
+          <Button
+            mode="contained"
+            icon="magnify"
+            onPress={() => track()}
+            loading={loading}
+            disabled={loading || !code.trim()}
+            style={uiStyles.btn}
+            contentStyle={uiStyles.btnContent}
+            labelStyle={uiStyles.btnLabel}>
+            Track
+          </Button>
+          <ErrorBanner message={error} style={styles.error} />
+        </SurfaceCard>
+      )}
 
       {loading && <ActivityIndicator style={styles.loader} color={colors.navy} />}
 
@@ -162,7 +241,12 @@ export default function TrackOrderScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: spacing.lg, paddingBottom: 40 },
-  searchCard: { padding: spacing.xl, marginTop: -HERO_OVERLAP },
+  topCard: { marginTop: -HERO_OVERLAP },
+  searchCard: { padding: spacing.xl },
+  pressed: { opacity: 0.85 },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  backText: { color: colors.cyanDark, fontWeight: '800', fontSize: 14 },
+  orderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surfaceMuted, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.sm, borderWidth: 1, borderColor: colors.border },
   input: { marginBottom: spacing.md },
   error: { marginTop: spacing.md },
   loader: { marginTop: spacing.xxl },
