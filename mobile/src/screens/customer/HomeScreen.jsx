@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, ScrollView, StyleSheet, ImageBackground, Pressable } from 'react-native';
 import { Text, Button, Icon } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../lib/AuthContext';
+import { api } from '../../api/client';
+import { formatDate } from '../../lib/date';
 import { IconTile, SectionTitle, BrandLogo, ScreenHero, HERO_OVERLAP, uiStyles } from '../../components/ui';
 import { colors, radius, shadow, spacing, type } from '../../theme/tokens';
 
@@ -28,8 +31,26 @@ function firstName(fullName) {
 }
 
 export default function HomeScreen({ navigation }) {
-  const { profile } = useAuth();
+  const { profile, isAuthenticated } = useAuth();
   const name = firstName(profile?.full_name);
+  const [membership, setMembership] = useState(null);
+
+  // The plan the customer is on right now (active + paid — same lookup the
+  // cart prices against). Refetched on focus so subscribing or upgrading on
+  // the Plans tab shows up as soon as they come back here.
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAuthenticated) {
+        setMembership(null);
+        return undefined;
+      }
+      let live = true;
+      api.membership.getMyPlanState()
+        .then((state) => { if (live) setMembership(state.membership); })
+        .catch(() => {});
+      return () => { live = false; };
+    }, [isAuthenticated])
+  );
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
@@ -108,17 +129,45 @@ export default function HomeScreen({ navigation }) {
         ))}
       </View>
 
-      <Pressable style={({ pressed }) => [styles.memberBanner, pressed && styles.pressed]} onPress={() => navigation.navigate('Subscription')} accessibilityRole="button">
-        <IconTile icon="crown" size={48} tone="gold" />
-        <View style={styles.flex}>
-          <Text style={styles.memberTitle}>Become a T2 member</Text>
-          <Text style={styles.memberText}>Free pickup & delivery, priority booking and more.</Text>
+      {membership ? (
+        <View style={styles.memberBanner}>
+          <IconTile icon="crown" size={48} tone="gold" />
+          <View style={styles.flex}>
+            <Text style={styles.memberEyebrow}>Your current plan</Text>
+            <Text style={styles.memberTitle} numberOfLines={1}>{membership.plan_name}</Text>
+            {!!membership.end_date && <Text style={styles.memberText}>Valid till {formatDate(membership.end_date)}</Text>}
+          </View>
+          <View style={styles.memberStats}>
+            <Text style={styles.memberStat}>
+              <Text style={styles.memberStatValue}>{membership.bookings_used ?? 0}/{membership.bookings_allowed ?? 0}</Text> bookings
+            </Text>
+            <Text style={styles.memberStat}>
+              <Text style={styles.memberStatValue}>{membership.items_used ?? 0}/{membership.items_allowed ?? 0}</Text> items used
+            </Text>
+          </View>
+          <Pressable
+            style={({ pressed }) => [styles.memberCta, pressed && styles.pressed]}
+            onPress={() => navigation.navigate('Subscription')}
+            accessibilityRole="button"
+            accessibilityLabel="Upgrade plan">
+            <Icon source="arrow-up-circle-outline" size={18} color={colors.navy} />
+            <Text style={styles.memberCtaText}>Upgrade plan</Text>
+            <Icon source="chevron-right" size={18} color={colors.navy} />
+          </Pressable>
         </View>
-        <View style={styles.memberCta}>
-          <Text style={styles.memberCtaText}>See membership plans</Text>
-          <Icon source="chevron-right" size={18} color={colors.navy} />
-        </View>
-      </Pressable>
+      ) : (
+        <Pressable style={({ pressed }) => [styles.memberBanner, pressed && styles.pressed]} onPress={() => navigation.navigate('Subscription')} accessibilityRole="button">
+          <IconTile icon="crown" size={48} tone="gold" />
+          <View style={styles.flex}>
+            <Text style={styles.memberTitle}>Become a T2 member</Text>
+            <Text style={styles.memberText}>Free pickup & delivery, priority booking and more.</Text>
+          </View>
+          <View style={styles.memberCta}>
+            <Text style={styles.memberCtaText}>See membership plans</Text>
+            <Icon source="chevron-right" size={18} color={colors.navy} />
+          </View>
+        </Pressable>
+      )}
 
       <Text style={[type.caption, styles.eyebrow]}>The T2 Standard</Text>
       <Text style={type.h2}>A transparent, four-step ritual.</Text>
@@ -170,7 +219,11 @@ const styles = StyleSheet.create({
   serviceArrow: { position: 'absolute', top: spacing.lg, right: spacing.lg, width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
 
   memberBanner: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.md, backgroundColor: colors.navy, borderRadius: radius.xl, padding: spacing.lg, marginTop: spacing.xxl, ...shadow.raised },
+  memberEyebrow: { color: colors.gold, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' },
   memberTitle: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  memberStats: { flexDirection: 'row', width: '100%', gap: spacing.lg, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)', paddingTop: spacing.md },
+  memberStat: { color: colors.onDarkMuted, fontSize: 12 },
+  memberStatValue: { color: '#fff', fontWeight: '800', fontSize: 14 },
   memberText: { color: colors.onDarkMuted, fontSize: 12, marginTop: 2 },
   memberCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', backgroundColor: colors.gold, borderRadius: radius.md, paddingVertical: 10, gap: 4 },
   memberCtaText: { color: colors.navy, fontWeight: '800', fontSize: 13 },
