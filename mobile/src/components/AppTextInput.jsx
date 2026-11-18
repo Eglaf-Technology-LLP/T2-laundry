@@ -18,6 +18,12 @@ export default function AppTextInput({ style, ...props }) {
       activeOutlineColor={colors.cyanDark}
       textColor={colors.text}
       placeholderTextColor={colors.textFaint}
+      // iOS: Paper always sets textAlign on the native input, so React Native
+      // attaches a paragraph style whose default line-break mode is word
+      // wrapping. An unfocused single-line field then wraps a long value
+      // (e.g. an email) onto a second line that the box clips. Truncate with
+      // "…" instead; multiline fields keep wrapping.
+      lineBreakModeIOS={props.multiline ? undefined : 'tail'}
       {...props}
     />
   );
